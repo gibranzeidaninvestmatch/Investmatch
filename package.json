@@ -1,0 +1,10 @@
+{
+  "name": "investmatch",
+  "version": "2.0.0",
+  "description": "InvestMatch - Plateforme de matching investisseurs/entrepreneurs",
+  "private": true,
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}
