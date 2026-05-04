@@ -6,24 +6,21 @@ const PLANS = {
 };
 
 module.exports = async (req, res) => {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  if (!process.env.STRIPE_SECRET_KEY) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante.' });
+  if (!process.env.APP_URL) return res.status(500).json({ error: 'APP_URL manquante.' });
+
   try {
     const { plan, userId, userEmail } = req.body;
-
-    if (!plan || !userId || !userEmail) {
-      return res.status(400).json({ error: 'Paramètres manquants (plan, userId, userEmail)' });
-    }
+    if (!plan || !userId || !userEmail) return res.status(400).json({ error: 'plan, userId et userEmail sont requis.' });
 
     const priceId = PLANS[plan];
-    if (!priceId) {
-      return res.status(400).json({ error: 'Plan invalide. Utilisez "entrepreneur" ou "investisseur".' });
-    }
+    if (!priceId) return res.status(400).json({ error: 'Plan invalide. Utilisez entrepreneur ou investisseur.' });
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -36,9 +33,9 @@ module.exports = async (req, res) => {
       locale: 'fr',
     });
 
-    return res.status(200).json({ url: session.url, sessionId: session.id });
+    return res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error('Stripe error:', err.message);
-    return res.status(500).json({ error: 'Erreur lors de la création de la session de paiement.' });
+    console.error('create-checkout error:', err.message);
+    return res.status(500).json({ error: err.message });
   }
 };
