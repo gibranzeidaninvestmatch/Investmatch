@@ -13,7 +13,11 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   if (!process.env.STRIPE_SECRET_KEY) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante.' });
-  if (!process.env.APP_URL) return res.status(500).json({ error: 'APP_URL manquante.' });
+
+  // APP_URL explicite, sinon fallback sur VERCEL_URL (injecté automatiquement par Vercel)
+  const appUrl = process.env.APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+  if (!appUrl) return res.status(500).json({ error: 'APP_URL manquante. Configurez-la dans les variables Vercel.' });
 
   try {
     const { plan, userId, userEmail } = req.body;
@@ -28,8 +32,8 @@ module.exports = async (req, res) => {
       customer_email: userEmail,
       line_items: [{ price: priceId, quantity: 1 }],
       metadata: { userId, plan },
-      success_url: `${process.env.APP_URL}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL}?payment=cancelled`,
+      success_url: `${appUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}?payment=cancelled`,
       locale: 'fr',
     });
 
