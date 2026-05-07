@@ -942,30 +942,45 @@ function resetAppState() {
 // ═══════════════════════════════════════
 async function loadProfile() {
   setLoader('Chargement du profil…');
+  let data = null, error = null, timedOut = false;
   try {
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
-    const { data, error } = await Promise.race([
+    const timeout = new Promise((_, rej) => setTimeout(() => { timedOut = true; rej(new Error('timeout')); }, 6000));
+    const result = await Promise.race([
       sb.from('profiles').select('*').eq('id', currentUser.id).single(),
       timeout
     ]);
-    if (error || !data) {
-      hideLoader();
-      const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
-      hideAuth(); showSetup(userType);
-    } else {
-      currentProfile = data;
-      hideLoader(); hideAuth(); hideSetup();
-      await launchApp();
-    }
+    data = result.data; error = result.error;
   } catch(e) {
-    hideLoader();
-    if (currentUser) {
-      const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
-      hideAuth(); showSetup(userType);
-    } else {
-      showAuth();
+    if (timedOut) {
+      // Erreur réseau / timeout : on retente une fois
+      hideLoader();
+      showToast('Connexion lente, nouvelle tentative…', 'info');
+      await new Promise(r => setTimeout(r, 2000));
+      return loadProfile();
     }
+    hideLoader(); showAuth();
+    return;
   }
+
+  // Pas de profil encore créé → setup
+  if (error?.code === 'PGRST116' || (!data && !error)) {
+    hideLoader();
+    const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
+    hideAuth(); showSetup(userType);
+    return;
+  }
+
+  // Autre erreur Supabase (RLS, réseau, etc.)
+  if (error) {
+    hideLoader();
+    showToast('Erreur de chargement du profil. Réessayez.', 'error');
+    showAuth();
+    return;
+  }
+
+  currentProfile = data;
+  hideLoader(); hideAuth(); hideSetup();
+  await launchApp();
 }
 
 async function handleProfileSetup() {
