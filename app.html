@@ -1608,7 +1608,7 @@ async function startCheckout() {
 }
 
 // Gère le retour depuis Stripe (success ou cancel)
-function handleStripeReturn() {
+async function handleStripeReturn() {
   const params = new URLSearchParams(window.location.search);
   const payment = params.get('payment');
   if (payment === 'success') {
