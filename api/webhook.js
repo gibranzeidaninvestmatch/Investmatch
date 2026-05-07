@@ -42,6 +42,7 @@ module.exports = async (req, res) => {
 
       case 'checkout.session.completed': {
         const session = event.data.object;
+        if (session.payment_status !== 'paid') { console.warn('Session non payée, ignorée'); break; }
         const userId = session.metadata?.userId;
         if (!userId) { console.warn('Pas de userId dans metadata'); break; }
         const { error } = await sb.from('profiles').update({

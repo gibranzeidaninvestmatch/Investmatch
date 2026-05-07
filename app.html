@@ -613,6 +613,7 @@ let myMatches = [];
 let activeMatchId = null;
 let realtimeChannel = null;
 let isSending = false;
+let lastMessageTime = 0;
 let stats = { seen: 0, likes: 0 };
 let swipesLeft = FREE_SWIPES_PER_DAY;
 let isPremium = false; // À connecter avec Stripe
@@ -649,21 +650,15 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════
 // FREEMIUM — SWIPE MANAGEMENT
 // ═══════════════════════════════════════
-function loadSwipeCount() {
-  if (isPremium) { swipesLeft = Infinity; return; }
-  const stored = JSON.parse(localStorage.getItem(SWIPE_STORAGE_KEY) || '{}');
-  const today = new Date().toDateString();
-  if (stored.date !== today) {
-    swipesLeft = FREE_SWIPES_PER_DAY;
-    saveSwipeCount();
-  } else {
-    swipesLeft = stored.count ?? FREE_SWIPES_PER_DAY;
-  }
+async function loadSwipeCount() {
+  if (isPremium) { swipesLeft = Infinity; updateSwipeUI(); return; }
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const { count } = await sb.from('swipes')
+    .select('*', { count: 'exact', head: true })
+    .eq('swiper_id', currentProfile.id)
+    .gte('created_at', todayStart.toISOString());
+  swipesLeft = Math.max(0, FREE_SWIPES_PER_DAY - (count || 0));
   updateSwipeUI();
-}
-
-function saveSwipeCount() {
-  localStorage.setItem(SWIPE_STORAGE_KEY, JSON.stringify({ date: new Date().toDateString(), count: swipesLeft }));
 }
 
 function consumeSwipe() {
@@ -674,7 +669,6 @@ function consumeSwipe() {
     return false;
   }
   swipesLeft = Math.max(0, swipesLeft - 1);
-  saveSwipeCount();
   updateSwipeUI();
   return true;
 }
@@ -1300,6 +1294,9 @@ function appendMessageBubble(msg, animate = true) {
 
 async function sendMessage(matchId) {
   if (isSending) return;
+  const now = Date.now();
+  if (now - lastMessageTime < 1500) return;
+  lastMessageTime = now;
   const input = document.getElementById('chat-input');
   const sendBtn = document.getElementById('send-btn');
   const content = input?.value?.trim();
@@ -1428,10 +1425,11 @@ function handleStripeReturn() {
   const params = new URLSearchParams(window.location.search);
   const payment = params.get('payment');
   if (payment === 'success') {
-    showToast('🎉 Paiement réussi ! Votre compte Premium est activé.', 'success', 6000);
-    // Recharge le profil pour récupérer is_premium = true
-    if (currentUser) loadProfile();
-    // Nettoie l'URL
+    // Vérifie is_premium en base avant d'afficher le toast
+    if (currentUser) {
+      await loadProfile();
+      if (isPremium) showToast('🎉 Paiement réussi ! Votre compte Premium est activé.', 'success', 6000);
+    }
     window.history.replaceState({}, '', window.location.pathname);
   } else if (payment === 'cancelled') {
     showToast('Paiement annulé.', 'info');
