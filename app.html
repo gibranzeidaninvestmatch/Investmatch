@@ -1323,14 +1323,27 @@ async function triggerAutoNDA(matchId, otherProfile) {
 }
 
 async function loadMatches() {
-  const { data, error } = await sb.from('matches').select('*, p1:user1_id(*), p2:user2_id(*)')
+  const { data: matchRows, error } = await sb.from('matches').select('*')
     .or(`user1_id.eq.${currentProfile.id},user2_id.eq.${currentProfile.id}`);
-  if (error) return;
-  myMatches = (data || []).map(m => ({
-    match: m,
-    profile: m.user1_id === currentProfile.id ? m.p2 : m.p1,
-    compatScore: m.compat_score || computeCompatScore(currentProfile, m.user1_id === currentProfile.id ? m.p2 : m.p1)
-  }));
+  if (error) { console.error('loadMatches error:', error); return; }
+  if (!matchRows || !matchRows.length) {
+    myMatches = [];
+    updateMatchBadge();
+    buildMatchesGrid();
+    buildConversationsList();
+    loadLikesReceived();
+    document.getElementById('stat-matches').textContent = 0;
+    return;
+  }
+  const otherIds = matchRows.map(m => m.user1_id === currentProfile.id ? m.user2_id : m.user1_id);
+  const { data: profiles } = await sb.from('profiles').select('*').in('id', otherIds);
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+  myMatches = matchRows.map(m => {
+    const otherId = m.user1_id === currentProfile.id ? m.user2_id : m.user1_id;
+    const profile = profileMap[otherId];
+    return { match: m, profile, compatScore: m.compat_score || (profile ? computeCompatScore(currentProfile, profile) : 0) };
+  }).filter(m => m.profile);
   updateMatchBadge();
   buildMatchesGrid();
   buildConversationsList();
