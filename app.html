@@ -1428,8 +1428,12 @@ async function openMatchChat(matchId, profileId) {
   showPage('messages', document.querySelector('button.nav-item[onclick*="messages"]'));
   buildConversationsList();
 
-  const matchData = myMatches.find(m => m.match.id === matchId);
-  if (!matchData) return;
+  let matchData = myMatches.find(m => m.match.id === matchId);
+  if (!matchData) {
+    await loadMatches();
+    matchData = myMatches.find(m => m.match.id === matchId);
+  }
+  if (!matchData) { showToast('Impossible de charger ce chat. Réessayez.', 'error'); return; }
   const p = matchData.profile;
   const score = matchData.compatScore || computeCompatScore(currentProfile, p);
   const area = document.getElementById('chat-area');
