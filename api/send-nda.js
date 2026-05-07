@@ -37,6 +37,19 @@ module.exports = async (req, res) => {
     const investor = profiles?.find(p => p.id === investorId);
     if (!entrepreneur || !investor) return res.status(404).json({ error: 'Profils introuvables.' });
 
+    // Récupère les emails depuis auth.users si absents du profil
+    if (!entrepreneur.email) {
+      const { data: { user } } = await sb.auth.admin.getUserById(entrepreneurId);
+      entrepreneur.email = user?.email;
+    }
+    if (!investor.email) {
+      const { data: { user } } = await sb.auth.admin.getUserById(investorId);
+      investor.email = user?.email;
+    }
+    if (!entrepreneur.email || !investor.email) {
+      return res.status(400).json({ error: 'Emails des utilisateurs introuvables.' });
+    }
+
     const now = new Date();
     const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
     const agreementId = crypto.randomUUID();

@@ -992,6 +992,7 @@ async function handleProfileSetup() {
 
   const profileData = isE ? {
     id: currentUser.id, user_type: 'entrepreneur',
+    email: currentUser.email,
     name: escapeHtml(document.getElementById('s-name').value || 'Votre nom'),
     sector: document.getElementById('s-sector').value || 'Non précisé',
     amount: document.getElementById('s-amount').value,
@@ -1002,6 +1003,7 @@ async function handleProfileSetup() {
     tags: [...new Set([document.getElementById('s-sector').value, ...selectedSectors].filter(Boolean))],
   } : {
     id: currentUser.id, user_type: 'investisseur',
+    email: currentUser.email,
     name: escapeHtml(document.getElementById('si-name').value || 'Votre nom'),
     investor_type: document.getElementById('si-type').value,
     ticket_min: document.getElementById('si-min').value,
