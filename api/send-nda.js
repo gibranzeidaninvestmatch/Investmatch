@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
 
     // ── Email à l'entrepreneur ──
     await resend.emails.send({
-      from: 'InvestMatch <accords@investmatch.app>',
+      from: 'InvestMatch <onboarding@resend.dev>',
       to: entrepreneur.email,
       subject: type === 'nda'
         ? `Accord de confidentialité — Match avec ${investor.name}`
@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
 
     // ── Email à l'investisseur ──
     await resend.emails.send({
-      from: 'InvestMatch <accords@investmatch.app>',
+      from: 'InvestMatch <onboarding@resend.dev>',
       to: investor.email,
       subject: type === 'nda'
         ? `Accord de confidentialité — Match avec ${entrepreneur.name}`

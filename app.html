@@ -504,6 +504,18 @@ select.fi option{background:var(--navy-mid)}
 
       <!-- MATCHES -->
       <div id="page-matches">
+        <!-- Likes reçus -->
+        <div id="likes-section" style="margin-bottom:28px;display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;">❤️ Likes reçus</span>
+              <span id="likes-count-badge" style="margin-left:8px;background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;"></span>
+            </div>
+            <span id="likes-premium-hint" style="font-size:12px;color:var(--gray);display:none;">Passez Premium pour voir tous les likes →</span>
+          </div>
+          <div id="likes-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;"></div>
+        </div>
+        <!-- Matchs -->
         <div class="matches-grid" id="matches-grid">
           <div class="empty-state"><div class="icon">✦</div><h3>Pas encore de matchs</h3><p>Continuez à swiper !</p></div>
         </div>
@@ -901,7 +913,23 @@ async function handleRegister() {
 async function handleLogout() {
   if (realtimeChannel) sb.removeChannel(realtimeChannel);
   await sb.auth.signOut();
+  resetAppState();
   showToast('Déconnecté avec succès.', 'info');
+}
+
+function resetAppState() {
+  currentUser = null;
+  currentProfile = null;
+  myMatches = [];
+  cards = [];
+  swipesLeft = FREE_SWIPES_PER_DAY;
+  isPremium = false;
+  realtimeChannel = null;
+  sealMatchId = null;
+  sealOtherProfileId = null;
+  // Vide les zones UI pour éviter toute fuite de données
+  const areas = ['msgs-area','matches-grid','convos-list','discover-area'];
+  areas.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
 }
 
 // ═══════════════════════════════════════
@@ -1240,6 +1268,7 @@ async function loadMatches() {
   updateMatchBadge();
   buildMatchesGrid();
   buildConversationsList();
+  loadLikesReceived();
   document.getElementById('stat-matches').textContent = myMatches.length;
 }
 
@@ -1247,6 +1276,50 @@ function updateMatchBadge() {
   const badge = document.getElementById('match-count');
   if (myMatches.length > 0) { badge.textContent = myMatches.length; badge.style.display = ''; }
   else badge.style.display = 'none';
+}
+
+async function loadLikesReceived() {
+  const FREE_LIKES_VISIBLE = 3;
+  // Profils qui ont liké currentUser mais pas encore matchés
+  const matchedIds = myMatches.map(m => m.profile.id);
+  const { data: likes } = await sb.from('swipes')
+    .select('swiper_id, profiles!swiper_id(id, name, emoji, user_type, location, sector)')
+    .eq('swiped_id', currentProfile.id)
+    .eq('action', 'like')
+    .order('created_at', { ascending: false });
+
+  const unmatched = (likes || []).filter(l => !matchedIds.includes(l.swiper_id));
+  const section = document.getElementById('likes-section');
+  const grid = document.getElementById('likes-grid');
+  const badge = document.getElementById('likes-count-badge');
+  const hint = document.getElementById('likes-premium-hint');
+
+  if (!unmatched.length) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  badge.textContent = unmatched.length;
+  const visible = isPremium ? unmatched : unmatched.slice(0, FREE_LIKES_VISIBLE);
+  const hidden = isPremium ? 0 : Math.max(0, unmatched.length - FREE_LIKES_VISIBLE);
+  hint.style.display = (!isPremium && hidden > 0) ? '' : 'none';
+  if (!isPremium && hidden > 0) hint.textContent = `+${hidden} cachés — Passez Premium pour tous les voir →`;
+
+  grid.innerHTML = visible.map(l => {
+    const p = l.profiles;
+    return `<div onclick="showPage('discover')" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div style="font-size:32px;margin-bottom:8px;">${escapeHtml(p?.emoji||'💼')}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--white);">${escapeHtml(p?.name||'—')}</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px;">${escapeHtml(p?.user_type==='investisseur'?'Investisseur':'Entrepreneur')}</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--gold);font-weight:600;">❤️ vous a liké</div>
+    </div>`;
+  }).join('');
+
+  if (!isPremium && hidden > 0) {
+    grid.innerHTML += `<div onclick="showPremiumModal()" style="background:rgba(201,168,76,0.05);border:1px dashed rgba(201,168,76,0.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px;">
+      <div style="font-size:24px;margin-bottom:8px;">🔒</div>
+      <div style="font-size:12px;color:var(--gold);font-weight:600;">+${hidden} likes</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px;">Premium pour voir</div>
+    </div>`;
+  }
 }
 
 function buildMatchesGrid() {
