@@ -12,7 +12,7 @@
 <link rel="manifest" href="/manifest.json"/>
 <link rel="apple-touch-icon" href="/icon.svg"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -640,6 +640,10 @@ select.fi option{background:var(--navy-mid)}
 // ═══════════════════════════════════════
 const SUPABASE_URL = 'https://abivvqexjmhwcpnkqiuq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiaXZ2cWV4am1od2NwbmtxaXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczNjkwNDEsImV4cCI6MjA5Mjk0NTA0MX0.hj-bu1Zh6SyhXnY11pnPlPF-pFInCsMugSG1pDooy5M';
+if (typeof supabase === 'undefined') {
+  document.getElementById('loader-msg').textContent = 'Erreur de chargement. Veuillez rafraîchir la page.';
+  throw new Error('Supabase CDN not loaded');
+}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Freemium config
@@ -937,15 +941,23 @@ function resetAppState() {
 // ═══════════════════════════════════════
 async function loadProfile() {
   setLoader('Chargement du profil…');
-  const { data, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-  if (error || !data) {
-    hideLoader();
-    const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
-    hideAuth(); showSetup(userType);
-  } else {
-    currentProfile = data;
-    hideLoader(); hideAuth(); hideSetup();
-    await launchApp();
+  try {
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+    const { data, error } = await Promise.race([
+      sb.from('profiles').select('*').eq('id', currentUser.id).single(),
+      timeout
+    ]);
+    if (error || !data) {
+      hideLoader();
+      const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
+      hideAuth(); showSetup(userType);
+    } else {
+      currentProfile = data;
+      hideLoader(); hideAuth(); hideSetup();
+      await launchApp();
+    }
+  } catch(e) {
+    hideLoader(); showAuth();
   }
 }
 

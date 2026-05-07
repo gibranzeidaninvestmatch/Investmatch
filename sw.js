@@ -1,4 +1,4 @@
-const CACHE = 'investmatch-v1';
+const CACHE = 'investmatch-v2';
 const PRECACHE = [
   '/app',
   '/manifest.json'
