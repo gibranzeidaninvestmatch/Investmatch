@@ -992,7 +992,6 @@ async function handleProfileSetup() {
 
   const profileData = isE ? {
     id: currentUser.id, user_type: 'entrepreneur',
-    email: currentUser.email,
     name: escapeHtml(document.getElementById('s-name').value || 'Votre nom'),
     sector: document.getElementById('s-sector').value || 'Non précisé',
     amount: document.getElementById('s-amount').value,
@@ -1003,7 +1002,6 @@ async function handleProfileSetup() {
     tags: [...new Set([document.getElementById('s-sector').value, ...selectedSectors].filter(Boolean))],
   } : {
     id: currentUser.id, user_type: 'investisseur',
-    email: currentUser.email,
     name: escapeHtml(document.getElementById('si-name').value || 'Votre nom'),
     investor_type: document.getElementById('si-type').value,
     ticket_min: document.getElementById('si-min').value,
@@ -1023,9 +1021,13 @@ async function handleProfileSetup() {
     return;
   }
   currentProfile = data;
-  hideSetup();
-  showToast('Profil créé avec succès !', 'success');
-  await launchApp();
+  hideLoader(); hideAuth(); hideSetup();
+  try {
+    await launchApp();
+  } catch(e) {
+    console.error('launchApp error:', e);
+    showToast('Erreur au lancement. Rechargez la page.', 'error');
+  }
 }
 
 // ═══════════════════════════════════════
@@ -1038,7 +1040,7 @@ async function init() {
 
   // onAuthStateChange enregistré EN PREMIER pour ne rater aucun événement
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session && !_profileLoading) {
+    if (event === 'SIGNED_IN' && session && !_profileLoading && !currentProfile) {
       _profileLoading = true;
       currentUser = session.user;
       await loadProfile();
