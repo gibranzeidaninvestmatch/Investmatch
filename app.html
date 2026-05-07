@@ -1371,11 +1371,12 @@ async function loadLikesReceived() {
 
   grid.innerHTML = visible.map(l => {
     const p = l.profiles;
-    return `<div onclick="showPage('discover', document.querySelector('button.nav-item[onclick*=\\'discover\\']'))" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    return `<div onclick="likeBack('${l.swiper_id}')" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
       <div style="font-size:32px;margin-bottom:8px;">${escapeHtml(p?.emoji||'💼')}</div>
       <div style="font-size:13px;font-weight:600;color:var(--white);">${escapeHtml(p?.name||'—')}</div>
       <div style="font-size:11px;color:var(--gray);margin-top:4px;">${escapeHtml(p?.user_type==='investisseur'?'Investisseur':'Entrepreneur')}</div>
       <div style="margin-top:10px;font-size:11px;color:var(--gold);font-weight:600;">❤️ vous a liké</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--navy-mid);background:var(--gold);border-radius:6px;padding:4px 8px;display:inline-block;font-weight:700;">Liker en retour ↩</div>
     </div>`;
   }).join('');
 
@@ -1386,6 +1387,16 @@ async function loadLikesReceived() {
       <div style="font-size:11px;color:var(--gray);margin-top:4px;">Premium pour voir</div>
     </div>`;
   }
+}
+
+async function likeBack(swiperId) {
+  if (!consumeSwipe()) return;
+  try {
+    await sb.from('swipes').upsert({ swiper_id: currentProfile.id, swiped_id: swiperId, action: 'like' }, { onConflict: 'swiper_id,swiped_id' });
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', swiperId).single();
+    if (profile) await createMatch(profile);
+    await loadLikesReceived();
+  } catch(e) { showToast('Erreur. Réessayez.', 'error'); }
 }
 
 function buildMatchesGrid() {
