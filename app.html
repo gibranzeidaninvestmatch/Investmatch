@@ -1287,23 +1287,21 @@ async function doSwipe(action, card, profile) {
 // MATCHES
 // ═══════════════════════════════════════
 async function createMatch(profile) {
-  pendingMatchProfile = profile;
-  showMatchPopup(profile); // immédiat, avant la confirmation DB
   const u1 = currentProfile.id < profile.id ? currentProfile.id : profile.id;
   const u2 = currentProfile.id < profile.id ? profile.id : currentProfile.id;
   try {
     const { data, error } = await sb.from('matches').upsert({ user1_id: u1, user2_id: u2 }, { onConflict: 'user1_id,user2_id' }).select().single();
     if (!error && data) {
       myMatches.push({ match: data, profile });
-      pendingMatchProfile = null;
       document.getElementById('stat-matches').textContent = myMatches.length;
       updateMatchBadge();
+      showMatchPopup(profile);
       buildMatchesGrid();
       buildConversationsList();
       // NDA automatique au match
       triggerAutoNDA(data.id, profile);
     }
-  } catch(e) { pendingMatchProfile = null; showToast('Erreur lors de la création du match.', 'error'); }
+  } catch(e) { showToast('Erreur lors de la création du match.', 'error'); }
 }
 
 async function triggerAutoNDA(matchId, otherProfile) {
@@ -1559,9 +1557,6 @@ function goToMessages() {
   if (myMatches.length) {
     const last = myMatches[myMatches.length - 1];
     openMatchChat(last.match.id, last.profile.id);
-  } else {
-    // Match DB pas encore confirmé — aller sur la page messages en attendant
-    showPage('messages', document.querySelector('button.nav-item[onclick*="messages"]'));
   }
 }
 
