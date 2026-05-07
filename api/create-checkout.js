@@ -9,6 +9,7 @@ module.exports = async (req, res) => {
   const allowedOrigins = [
     process.env.APP_URL,
     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+    'https://investmatch-five.vercel.app',
   ].filter(Boolean);
   const origin = req.headers.origin || '';
   if (allowedOrigins.includes(origin)) {

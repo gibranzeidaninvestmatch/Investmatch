@@ -39,12 +39,12 @@ module.exports = async (req, res) => {
 
     // Récupère les emails depuis auth.users si absents du profil
     if (!entrepreneur.email) {
-      const { data: { user } } = await sb.auth.admin.getUserById(entrepreneurId);
-      entrepreneur.email = user?.email;
+      const { data: authUser1 } = await sb.auth.admin.getUserById(entrepreneurId);
+      entrepreneur.email = authUser1?.user?.email;
     }
     if (!investor.email) {
-      const { data: { user } } = await sb.auth.admin.getUserById(investorId);
-      investor.email = user?.email;
+      const { data: authUser2 } = await sb.auth.admin.getUserById(investorId);
+      investor.email = authUser2?.user?.email;
     }
     if (!entrepreneur.email || !investor.email) {
       return res.status(400).json({ error: 'Emails des utilisateurs introuvables.' });
@@ -63,8 +63,8 @@ module.exports = async (req, res) => {
     // ── Génère le PDF ──
     const pdfBuffer = await generatePDF({ ndaText, agreementId, hash, dateStr, type });
 
-    // ── Stocke dans Supabase ──
-    await sb.from('agreements').insert({
+    // ── Stocke dans Supabase (upsert pour éviter doublons) ──
+    const { error: insertError } = await sb.from('agreements').upsert({
       id: agreementId,
       match_id: matchId,
       entrepreneur_id: entrepreneurId,
@@ -73,7 +73,11 @@ module.exports = async (req, res) => {
       terms,
       agreement_hash: hash,
       signed_at: now.toISOString(),
-    });
+    }, { onConflict: 'match_id,type' });
+    if (insertError) {
+      console.error('Supabase insert error:', insertError);
+      return res.status(500).json({ error: 'Erreur lors de la sauvegarde de l\'accord.' });
+    }
 
     // ── Email à l'entrepreneur ──
     await resend.emails.send({
@@ -83,7 +87,7 @@ module.exports = async (req, res) => {
         ? `Accord de confidentialité — Match avec ${investor.name}`
         : `Accord de partenariat scellé — ${investor.name}`,
       html: buildEmailHTML({ recipient: entrepreneur, other: investor, agreementId, hash, dateStr, type }),
-      attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer.toString('base64') }],
+      attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer }],
     });
 
     // ── Email à l'investisseur ──
@@ -94,7 +98,7 @@ module.exports = async (req, res) => {
         ? `Accord de confidentialité — Match avec ${entrepreneur.name}`
         : `Accord de partenariat scellé — ${entrepreneur.name}`,
       html: buildEmailHTML({ recipient: investor, other: entrepreneur, agreementId, hash, dateStr, type }),
-      attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer.toString('base64') }],
+      attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer }],
     });
 
     return res.status(200).json({ agreementId, hash });

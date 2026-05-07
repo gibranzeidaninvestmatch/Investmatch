@@ -1100,11 +1100,9 @@ async function loadDiscoverProfiles() {
   const excluded = (swipedIds || []).map(s => s.swiped_id);
   excluded.push(currentProfile.id);
 
-  const { data, error } = await sb.from('profiles')
-    .select('*')
-    .eq('user_type', oppositeType)
-    .not('id', 'in', `(${excluded.join(',')})`)
-    .limit(30);
+  let query = sb.from('profiles').select('*').eq('user_type', oppositeType);
+  if (excluded.length > 0) query = query.not('id', 'in', `(${excluded.join(',')})`);
+  const { data, error } = await query.limit(30);
 
   if (error) {
     discoverProfiles = [];
@@ -1305,6 +1303,12 @@ async function createMatch(profile) {
 
 async function triggerAutoNDA(matchId, otherProfile) {
   try {
+    // Vérifie qu'aucun NDA n'existe déjà pour ce match
+    const { count } = await sb.from('agreements')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', matchId);
+    if (count && count > 0) return;
+
     const entrepreneurId = currentProfile.user_type === 'entrepreneur' ? currentProfile.id : otherProfile.id;
     const investorId = currentProfile.user_type === 'investisseur' ? currentProfile.id : otherProfile.id;
     await fetch('/api/send-nda', {
@@ -1312,7 +1316,6 @@ async function triggerAutoNDA(matchId, otherProfile) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ matchId, entrepreneurId, investorId, type: 'nda' })
     });
-    // Pas de toast pour ne pas surcharger l'UI — email envoyé silencieusement
   } catch(e) { console.warn('NDA auto non envoyé:', e.message); }
 }
 
@@ -1524,7 +1527,7 @@ function setupRealtimeMessages(matchId) {
 function setupRealtimeGlobal() {
   sb.channel('global-matches')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches',
-      filter: `user2_id=eq.${currentProfile.id}` }, () => loadMatches())
+      filter: `user2_id=eq.${currentProfile.id}` }, async () => { await loadMatches(); })
     .subscribe();
 }
 
@@ -1668,7 +1671,10 @@ async function handleStripeReturn() {
     // Vérifie is_premium en base avant d'afficher le toast
     if (currentUser) {
       await loadProfile();
-      if (isPremium) showToast('🎉 Paiement réussi ! Votre compte Premium est activé.', 'success', 6000);
+      if (currentProfile?.is_premium) {
+        activatePremiumUI();
+        showToast('🎉 Paiement réussi ! Votre compte Premium est activé.', 'success', 6000);
+      }
     }
     window.history.replaceState({}, '', window.location.pathname);
   } else if (payment === 'cancelled') {
