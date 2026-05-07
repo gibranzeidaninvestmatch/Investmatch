@@ -1384,12 +1384,12 @@ async function loadLikesReceived() {
 
   grid.innerHTML = visible.map(l => {
     const p = l.profiles;
-    return `<div onclick="likeBack('${l.swiper_id}')" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    return `<div onclick="openLikeChat('${l.swiper_id}')" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
       <div style="font-size:32px;margin-bottom:8px;">${escapeHtml(p?.emoji||'💼')}</div>
       <div style="font-size:13px;font-weight:600;color:var(--white);">${escapeHtml(p?.name||'—')}</div>
       <div style="font-size:11px;color:var(--gray);margin-top:4px;">${escapeHtml(p?.user_type==='investisseur'?'Investisseur':'Entrepreneur')}</div>
       <div style="margin-top:10px;font-size:11px;color:var(--gold);font-weight:600;">❤️ vous a liké</div>
-      <div style="margin-top:8px;font-size:11px;color:var(--navy-mid);background:var(--gold);border-radius:6px;padding:4px 8px;display:inline-block;font-weight:700;">Liker en retour ↩</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--navy-mid);background:var(--gold);border-radius:6px;padding:4px 8px;display:inline-block;font-weight:700;">Envoyer un message →</div>
     </div>`;
   }).join('');
 
@@ -1402,7 +1402,18 @@ async function loadLikesReceived() {
   }
 }
 
-async function likeBack(swiperId) {
+async function openLikeChat(swiperId) {
+  // Vérifie si déjà matché (recharge si myMatches vide)
+  let existing = myMatches.find(m => m.profile?.id === swiperId);
+  if (!existing) {
+    await loadMatches();
+    existing = myMatches.find(m => m.profile?.id === swiperId);
+  }
+  if (existing) {
+    openMatchChat(existing.match.id, existing.profile.id);
+    return;
+  }
+  // Pas encore matché → like en retour
   if (!consumeSwipe()) return;
   try {
     await sb.from('swipes').upsert({ swiper_id: currentProfile.id, swiped_id: swiperId, action: 'like' }, { onConflict: 'swiper_id,swiped_id' });
