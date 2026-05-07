@@ -6,9 +6,12 @@ const PLANS = {
 };
 
 module.exports = async (req, res) => {
-  const allowed = process.env.APP_URL || `https://${process.env.VERCEL_URL}`;
+  const allowedOrigins = [
+    process.env.APP_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  ].filter(Boolean);
   const origin = req.headers.origin || '';
-  if (origin === allowed || origin.endsWith('.vercel.app')) {
+  if (allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');

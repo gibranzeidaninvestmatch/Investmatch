@@ -925,13 +925,14 @@ function resetAppState() {
   currentUser = null;
   currentProfile = null;
   myMatches = [];
-  cards = [];
+  discoverProfiles = [];
+  discoverIdx = 0;
   swipesLeft = FREE_SWIPES_PER_DAY;
   isPremium = false;
   realtimeChannel = null;
+  activeMatchId = null;
   sealMatchId = null;
   sealOtherProfileId = null;
-  // Vide les zones UI pour éviter toute fuite de données
   const areas = ['msgs-area','matches-grid','convos-list','discover-area'];
   areas.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
 }
@@ -1013,8 +1014,25 @@ async function handleProfileSetup() {
 // ═══════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════
+let _profileLoading = false;
+
 async function init() {
   setLoader('Vérification de la session…');
+
+  // onAuthStateChange enregistré EN PREMIER pour ne rater aucun événement
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session && !_profileLoading) {
+      _profileLoading = true;
+      currentUser = session.user;
+      await loadProfile();
+      _profileLoading = false;
+    } else if (event === 'SIGNED_OUT') {
+      _profileLoading = false;
+      currentUser = null; currentProfile = null;
+      hideApp(); showAuth();
+    }
+  });
+
   let session = null;
   try {
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
@@ -1023,21 +1041,14 @@ async function init() {
   } catch(e) {
     // Timeout ou erreur réseau → affiche login directement
   }
-  if (session) {
+  if (session && !_profileLoading) {
+    _profileLoading = true;
     currentUser = session.user;
     await loadProfile();
-  } else {
+    _profileLoading = false;
+  } else if (!session) {
     hideLoader(); showAuth();
   }
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-      currentUser = session.user;
-      await loadProfile();
-    } else if (event === 'SIGNED_OUT') {
-      currentUser = null; currentProfile = null;
-      hideApp(); showAuth();
-    }
-  });
 }
 
 // ═══════════════════════════════════════
@@ -1072,13 +1083,20 @@ async function loadDiscoverProfiles() {
   const excluded = (swipedIds || []).map(s => s.swiped_id);
   excluded.push(currentProfile.id);
 
-  let query = sb.from('profiles').select('*').eq('user_type', oppositeType);
-  if (excluded.length > 0) query = query.not('id', 'in', `(${excluded.join(',')})`);
+  const { data, error } = await sb.from('profiles')
+    .select('*')
+    .eq('user_type', oppositeType)
+    .not('id', 'in', `(${excluded.join(',')})`)
+    .limit(30);
 
-  const { data, error } = await query.limit(30);
-  if (error) { showToast('Erreur lors du chargement des profils.', 'error'); return; }
+  if (error) {
+    discoverProfiles = [];
+    discoverIdx = 0;
+    buildCards();
+    showToast('Erreur lors du chargement des profils.', 'error');
+    return;
+  }
 
-  // Calcule les scores et trie par compatibilité décroissante
   discoverProfiles = (data || [])
     .map(p => ({ ...p, compatScore: computeCompatScore(currentProfile, p) }))
     .sort((a, b) => b.compatScore - a.compatScore);

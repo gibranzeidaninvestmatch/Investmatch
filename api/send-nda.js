@@ -13,17 +13,26 @@ module.exports = async (req, res) => {
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   const resend = new Resend(process.env.RESEND_API_KEY);
 
+  const isValidUUID = str => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
   try {
     const { matchId, entrepreneurId, investorId, type = 'nda', terms = {} } = req.body;
     if (!matchId || !entrepreneurId || !investorId) {
       return res.status(400).json({ error: 'matchId, entrepreneurId et investorId requis.' });
     }
+    if (!isValidUUID(matchId) || !isValidUUID(entrepreneurId) || !isValidUUID(investorId)) {
+      return res.status(400).json({ error: 'IDs invalides.' });
+    }
+    if (!['nda', 'ncnda'].includes(type)) {
+      return res.status(400).json({ error: 'type invalide.' });
+    }
 
     // Récupère les profils
-    const { data: profiles } = await sb.from('profiles')
+    const { data: profiles, error: profileError } = await sb.from('profiles')
       .select('id, name, email, user_type, sector, amount, ticket_min, ticket_max, stage')
       .in('id', [entrepreneurId, investorId]);
 
+    if (profileError) { console.error('Supabase profiles error:', profileError); return res.status(500).json({ error: 'Erreur base de données.' }); }
     const entrepreneur = profiles?.find(p => p.id === entrepreneurId);
     const investor = profiles?.find(p => p.id === investorId);
     if (!entrepreneur || !investor) return res.status(404).json({ error: 'Profils introuvables.' });

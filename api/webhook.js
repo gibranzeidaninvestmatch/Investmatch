@@ -44,7 +44,8 @@ module.exports = async (req, res) => {
         const session = event.data.object;
         if (session.payment_status !== 'paid') { console.warn('Session non payée, ignorée'); break; }
         const userId = session.metadata?.userId;
-        if (!userId) { console.warn('Pas de userId dans metadata'); break; }
+        const isValidUUID = str => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+        if (!userId || !isValidUUID(userId)) { console.warn('userId invalide dans metadata:', userId); break; }
         const { error } = await sb.from('profiles').update({
           is_premium: true,
           premium_plan: session.metadata?.plan,
@@ -52,7 +53,7 @@ module.exports = async (req, res) => {
           stripe_subscription_id: session.subscription,
           premium_since: new Date().toISOString(),
         }).eq('id', userId);
-        if (error) console.error('Supabase update error:', error);
+        if (error) { console.error('Supabase update error:', error); throw error; }
         else console.log('Premium activé pour:', userId);
         break;
       }
