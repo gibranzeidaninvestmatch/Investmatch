@@ -656,6 +656,7 @@ let discoverProfiles = [];
 let discoverIdx = 0;
 let myMatches = [];
 let activeMatchId = null;
+let pendingMatchProfile = null;
 let realtimeChannel = null;
 let isSending = false;
 let lastMessageTime = 0;
@@ -1286,21 +1287,23 @@ async function doSwipe(action, card, profile) {
 // MATCHES
 // ═══════════════════════════════════════
 async function createMatch(profile) {
+  pendingMatchProfile = profile;
+  showMatchPopup(profile); // immédiat, avant la confirmation DB
   const u1 = currentProfile.id < profile.id ? currentProfile.id : profile.id;
   const u2 = currentProfile.id < profile.id ? profile.id : currentProfile.id;
   try {
     const { data, error } = await sb.from('matches').upsert({ user1_id: u1, user2_id: u2 }, { onConflict: 'user1_id,user2_id' }).select().single();
     if (!error && data) {
       myMatches.push({ match: data, profile });
+      pendingMatchProfile = null;
       document.getElementById('stat-matches').textContent = myMatches.length;
       updateMatchBadge();
-      showMatchPopup(profile);
       buildMatchesGrid();
       buildConversationsList();
       // NDA automatique au match
       triggerAutoNDA(data.id, profile);
     }
-  } catch(e) { showToast('Erreur lors de la création du match.', 'error'); }
+  } catch(e) { pendingMatchProfile = null; showToast('Erreur lors de la création du match.', 'error'); }
 }
 
 async function triggerAutoNDA(matchId, otherProfile) {
@@ -1370,7 +1373,7 @@ async function loadLikesReceived() {
 
   grid.innerHTML = visible.map(l => {
     const p = l.profiles;
-    return `<div onclick="showPage('discover')" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    return `<div onclick="showPage('discover', document.querySelector('button.nav-item[onclick*=\\'discover\\']'))" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
       <div style="font-size:32px;margin-bottom:8px;">${escapeHtml(p?.emoji||'💼')}</div>
       <div style="font-size:13px;font-weight:600;color:var(--white);">${escapeHtml(p?.name||'—')}</div>
       <div style="font-size:11px;color:var(--gray);margin-top:4px;">${escapeHtml(p?.user_type==='investisseur'?'Investisseur':'Entrepreneur')}</div>
@@ -1424,7 +1427,7 @@ function buildConversationsList() {
 
 async function openMatchChat(matchId, profileId) {
   activeMatchId = matchId;
-  showPage('messages', document.querySelectorAll('.nav-item')[2]);
+  showPage('messages', document.querySelector('button.nav-item[onclick*="messages"]'));
   buildConversationsList();
 
   const matchData = myMatches.find(m => m.match.id === matchId);
@@ -1529,7 +1532,14 @@ function setupRealtimeMessages(matchId) {
 function setupRealtimeGlobal() {
   sb.channel('global-matches')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches',
-      filter: `user2_id=eq.${currentProfile.id}` }, async () => { await loadMatches(); })
+      filter: `user2_id=eq.${currentProfile.id}` }, async () => {
+        const prevCount = myMatches.length;
+        await loadMatches();
+        if (myMatches.length > prevCount) {
+          const newest = myMatches[myMatches.length - 1];
+          showMatchPopup(newest.profile);
+        }
+      })
     .subscribe();
 }
 
@@ -1549,6 +1559,9 @@ function goToMessages() {
   if (myMatches.length) {
     const last = myMatches[myMatches.length - 1];
     openMatchChat(last.match.id, last.profile.id);
+  } else {
+    // Match DB pas encore confirmé — aller sur la page messages en attendant
+    showPage('messages', document.querySelector('button.nav-item[onclick*="messages"]'));
   }
 }
 
