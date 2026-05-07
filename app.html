@@ -957,7 +957,13 @@ async function loadProfile() {
       await launchApp();
     }
   } catch(e) {
-    hideLoader(); showAuth();
+    hideLoader();
+    if (currentUser) {
+      const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
+      hideAuth(); showSetup(userType);
+    } else {
+      showAuth();
+    }
   }
 }
 
