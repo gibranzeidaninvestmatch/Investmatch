@@ -53,7 +53,13 @@ module.exports = async (req, res) => {
 
     const now = new Date();
     const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-    const agreementId = crypto.randomUUID();
+
+    // ── Vérifie si un accord existe déjà (créé par triggerAutoNDA) ──
+    const { data: existing } = await sb.from('agreements')
+      .select('id').eq('match_id', matchId).maybeSingle();
+
+    // Utilise l'ID existant ou en crée un nouveau
+    const agreementId = existing ? existing.id : crypto.randomUUID();
 
     // ── Génère le texte du contrat ──
     const ndaText = buildNDAText({ entrepreneur, investor, dateStr, agreementId, type, terms });
@@ -64,10 +70,22 @@ module.exports = async (req, res) => {
     // ── Génère le PDF ──
     const pdfBuffer = await generatePDF({ ndaText, agreementId, hash, dateStr, type });
 
-    // ── Stocke dans Supabase (SELECT + INSERT pour éviter doublons sans contrainte unique) ──
-    const { data: existing } = await sb.from('agreements')
-      .select('id').eq('match_id', matchId).eq('type', type).maybeSingle();
-    if (!existing) {
+    // ── Stocke / met à jour dans Supabase ──
+    if (existing) {
+      // Met à jour l'accord existant avec la date de signature et le hash
+      const { error: updateError } = await sb.from('agreements').update({
+        signed_at: now.toISOString(),
+        entrepreneur_signed: true,
+        investor_signed: true,
+        agreement_hash: hash,
+        type,
+        terms,
+      }).eq('id', existing.id);
+      if (updateError) {
+        console.error('Supabase update error:', updateError);
+        return res.status(500).json({ error: 'Erreur lors de la mise à jour de l\'accord.' });
+      }
+    } else {
       const { error: insertError } = await sb.from('agreements').insert({
         id: agreementId,
         match_id: matchId,
@@ -77,6 +95,8 @@ module.exports = async (req, res) => {
         terms,
         agreement_hash: hash,
         signed_at: now.toISOString(),
+        entrepreneur_signed: true,
+        investor_signed: true,
       });
       if (insertError) {
         console.error('Supabase insert error:', insertError);

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -504,20 +504,20 @@ select.fi option{background:var(--navy-mid)}
 
       <!-- MATCHES -->
       <div id="page-matches">
-        <!-- Likes reçus -->
-        <div id="likes-section" style="margin-bottom:28px;display:none;">
+        <!-- Matchs -->
+        <div class="matches-grid" id="matches-grid">
+          <div class="empty-state"><div class="icon">✦</div><h3>Pas encore de matchs</h3><p>Continuez à swiper !</p></div>
+        </div>
+        <!-- Mes Likes -->
+        <div id="likes-section" style="margin-top:28px;display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
             <div>
-              <span style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;">❤️ Likes reçus</span>
+              <span style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;">❤️ Mes likes</span>
               <span id="likes-count-badge" style="margin-left:8px;background:var(--gold);color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;"></span>
             </div>
             <span id="likes-premium-hint" style="font-size:12px;color:var(--gray);display:none;">Passez Premium pour voir tous les likes →</span>
           </div>
           <div id="likes-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;"></div>
-        </div>
-        <!-- Matchs -->
-        <div class="matches-grid" id="matches-grid">
-          <div class="empty-state"><div class="icon">✦</div><h3>Pas encore de matchs</h3><p>Continuez à swiper !</p></div>
         </div>
       </div>
 
@@ -1311,20 +1311,27 @@ async function createMatch(profile) {
 
 async function triggerAutoNDA(matchId, otherProfile) {
   try {
-    // Vérifie qu'aucun NDA n'existe déjà pour ce match
-    const { count } = await sb.from('agreements')
-      .select('*', { count: 'exact', head: true })
-      .eq('match_id', matchId);
-    if (count && count > 0) return;
+    // Vérifie qu'aucun accord n'existe déjà
+    const { data: existing } = await sb.from('agreements')
+      .select('id').eq('match_id', matchId).maybeSingle();
+    if (existing) return;
 
-    const entrepreneurId = currentProfile.user_type === 'entrepreneur' ? currentProfile.id : otherProfile.id;
-    const investorId = currentProfile.user_type === 'investisseur' ? currentProfile.id : otherProfile.id;
-    await fetch('/api/send-nda', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ matchId, entrepreneurId, investorId, type: 'nda' })
+    const isE = currentProfile.user_type === 'entrepreneur';
+    const entrepreneurId = isE ? currentProfile.id : otherProfile.id;
+    const investorId = isE ? otherProfile.id : currentProfile.id;
+
+    // Crée l'accord non signé — les deux parties doivent signer avant d'échanger
+    const { error } = await sb.from('agreements').insert({
+      match_id: matchId,
+      entrepreneur_id: entrepreneurId,
+      investor_id: investorId,
+      type: 'nda',
+      terms: {},
+      entrepreneur_signed: false,
+      investor_signed: false,
     });
-  } catch(e) { console.warn('NDA auto non envoyé:', e.message); }
+    if (error) console.warn('Accord init error:', error.message);
+  } catch(e) { console.warn('Accord init:', e.message); }
 }
 
 async function loadMatches() {
@@ -1521,29 +1528,92 @@ async function openMatchChat(matchId, profileId) {
 
   // ── Vérifie si un accord existe ──
   const { data: agreement } = await sb.from('agreements')
-    .select('id, type, signed_at').eq('match_id', matchId)
-    .order('signed_at', { ascending: false }).limit(1).maybeSingle();
+    .select('id, type, signed_at, entrepreneur_id, investor_id, entrepreneur_signed, investor_signed')
+    .eq('match_id', matchId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
 
   if (!agreement) {
-    // 🔒 Messagerie verrouillée — NCNDA requis
+    // 🔒 Pas d'accord — en cours de création
     area.innerHTML = headerHTML + `
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px;">
-        <div style="width:72px;height:72px;background:rgba(201,168,76,0.08);border:2px solid rgba(201,168,76,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">🔒</div>
+        <div style="width:72px;height:72px;background:rgba(201,168,76,0.08);border:2px solid rgba(201,168,76,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">⏳</div>
         <div>
-          <h3 style="color:var(--white);font-size:17px;margin:0 0 8px;font-weight:700;">Accord requis avant d'échanger</h3>
-          <p style="color:var(--gray);font-size:13px;max-width:300px;margin:0 auto;line-height:1.6;">Un NCNDA (confidentialité + non-contournement) doit être signé par les deux parties avant d'accéder à la messagerie.</p>
+          <h3 style="color:var(--white);font-size:17px;margin:0 0 8px;font-weight:700;">Préparation du contrat…</h3>
+          <p style="color:var(--gray);font-size:13px;max-width:300px;margin:0 auto;line-height:1.6;">L'accord de confidentialité est en cours de création. Actualisez dans quelques secondes.</p>
         </div>
-        <button onclick="openSealModal('${matchId}','${p.id}')" style="padding:14px 32px;background:var(--gold);border:none;border-radius:10px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-          ✦ Signer le NCNDA maintenant
-        </button>
-        <button onclick="openMatchChat('${matchId}','${p.id}')" style="padding:8px 20px;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
-          🔄 Vérifier l'état
+        <button onclick="openMatchChat('${matchId}','${p.id}')" style="padding:12px 28px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">
+          🔄 Actualiser
         </button>
       </div>`;
     return;
   }
 
-  // ✅ Accord signé — messagerie déverrouillée
+  // Compat backwards : si signed_at existe, considéré signé par les deux
+  const legacySigned = !!agreement.signed_at;
+  const isE = agreement.entrepreneur_id === currentProfile.id;
+  const mySigned    = legacySigned || (isE ? agreement.entrepreneur_signed : agreement.investor_signed);
+  const otherSigned = legacySigned || (isE ? agreement.investor_signed    : agreement.entrepreneur_signed);
+  const bothSigned  = legacySigned || (agreement.entrepreneur_signed && agreement.investor_signed);
+
+  if (!mySigned) {
+    // 📝 L'utilisateur courant doit signer
+    const ndaPreview = `
+      <div style="background:rgba(11,22,40,0.8);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:20px;max-height:340px;overflow-y:auto;text-align:left;font-size:12px;line-height:1.7;color:var(--gray);">
+        <h4 style="color:var(--gold);margin:0 0 12px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">ACCORD DE CONFIDENTIALITÉ & NON-CONTOURNEMENT</h4>
+        <p><strong style="color:var(--white);">Article 1 — Objet</strong><br>Le présent accord régit les conditions de confidentialité et de non-contournement entre les Parties A et B, mises en relation par la Plateforme InvestMatch.</p>
+        <p><strong style="color:var(--white);">Article 2 — Confidentialité</strong><br>Chaque partie s'engage à maintenir strictement confidentielle toute information reçue de l'autre partie dans le cadre de cette mise en relation, incluant informations financières, stratégiques, commerciales et techniques. Durée : 5 ans.</p>
+        <p><strong style="color:var(--white);">Article 3 — Non-Contournement</strong><br>Les parties s'engagent à ne pas contourner la Plateforme InvestMatch dans le cadre de toute transaction découlant de cette mise en relation. Durée : 5 ans.</p>
+        <p><strong style="color:var(--white);">Article 4 — Commission InvestMatch</strong><br>Une commission est due à InvestMatch sur tout montant investi : 3% jusqu'à 500 000€ · 2% jusqu'à 2 000 000€ · 1% au-delà.</p>
+        <p><strong style="color:var(--white);">Article 5 — Clause Pénale</strong><br>En cas de violation : commission intégrale due + pénalité forfaitaire de 15 000€ + frais de procédure.</p>
+        <p><strong style="color:var(--white);">Article 6 — Droit Applicable</strong><br>Accord soumis au droit français. Juridiction exclusive : Tribunaux de Paris.</p>
+      </div>`;
+
+    area.innerHTML = headerHTML + `
+      <div style="flex:1;display:flex;flex-direction:column;padding:20px;gap:16px;overflow-y:auto;">
+        <div style="text-align:center;">
+          <div style="width:60px;height:60px;background:rgba(201,168,76,0.08);border:2px solid rgba(201,168,76,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;">📝</div>
+          <h3 style="color:var(--white);font-size:16px;margin:0 0 6px;font-weight:700;">Signature requise</h3>
+          <p style="color:var(--gray);font-size:12px;margin:0;line-height:1.5;">Lisez et signez l'accord avant de commencer à échanger.</p>
+        </div>
+        ${ndaPreview}
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:14px;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.15);border-radius:10px;">
+          <input type="checkbox" id="ncnda-checkbox" style="width:18px;height:18px;accent-color:var(--gold);margin-top:2px;flex-shrink:0;cursor:pointer;" onchange="document.getElementById('ncnda-sign-btn').disabled=!this.checked;">
+          <label for="ncnda-checkbox" style="color:var(--gray);font-size:12px;line-height:1.5;cursor:pointer;">
+            J'ai lu et j'accepte l'intégralité de l'accord de confidentialité et de non-contournement ci-dessus, incluant les obligations de commission envers InvestMatch.
+          </label>
+        </div>
+        <button id="ncnda-sign-btn" disabled onclick="signNCNDA('${matchId}','${agreement.id}','${p.id}')"
+          style="padding:14px;background:var(--gold);border:none;border-radius:10px;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;opacity:0.5;transition:opacity .2s;width:100%;"
+          onmouseover="if(!this.disabled)this.style.opacity='.85'" onmouseout="if(!this.disabled)this.style.opacity='1'">
+          ✍️ Signer électroniquement
+        </button>
+        <p style="color:rgba(138,155,181,0.6);font-size:11px;text-align:center;margin:0;">En signant, vous acceptez les termes de cet accord avec valeur juridique (droit français).</p>
+      </div>`;
+    return;
+  }
+
+  if (!otherSigned) {
+    // ⏳ En attente de la signature de l'autre partie
+    area.innerHTML = headerHTML + `
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px;">
+        <div style="width:72px;height:72px;background:rgba(201,168,76,0.08);border:2px solid rgba(201,168,76,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">⏳</div>
+        <div>
+          <h3 style="color:var(--white);font-size:17px;margin:0 0 8px;font-weight:700;">En attente de signature</h3>
+          <p style="color:var(--gray);font-size:13px;max-width:300px;margin:0 auto;line-height:1.6;">
+            <span style="color:var(--gold);font-weight:600;">${escapeHtml(p.name)}</span> n'a pas encore signé le NCNDA.<br>Vous serez notifié dès que les deux parties auront signé.
+          </p>
+        </div>
+        <div style="padding:12px 20px;background:rgba(46,213,115,0.08);border:1px solid rgba(46,213,115,0.25);border-radius:10px;">
+          <span style="color:#2ed573;font-size:13px;font-weight:600;">✅ Votre signature a été enregistrée</span>
+        </div>
+        <button onclick="openMatchChat('${matchId}','${p.id}')" style="padding:12px 28px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">
+          🔄 Actualiser
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ✅ Les deux ont signé — messagerie déverrouillée
   const signedDate = agreement.signed_at
     ? new Date(agreement.signed_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })
     : '';
@@ -1571,6 +1641,44 @@ async function openMatchChat(matchId, profileId) {
   await loadMessages(matchId);
   setupRealtimeMessages(matchId);
   setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
+}
+
+async function signNCNDA(matchId, agreementId, profileId) {
+  const btn = document.getElementById('ncnda-sign-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Signature en cours…'; }
+  try {
+    const { data: agr } = await sb.from('agreements')
+      .select('entrepreneur_id, investor_id, entrepreneur_signed, investor_signed, terms')
+      .eq('id', agreementId).maybeSingle();
+    if (!agr) { showToast('Accord introuvable.', 'error'); return; }
+
+    const isE = agr.entrepreneur_id === currentProfile.id;
+    const { error: updErr } = await sb.from('agreements')
+      .update(isE ? { entrepreneur_signed: true } : { investor_signed: true })
+      .eq('id', agreementId);
+    if (updErr) { showToast('Erreur lors de la signature : ' + updErr.message, 'error'); return; }
+
+    const otherAlreadySigned = isE ? agr.investor_signed : agr.entrepreneur_signed;
+    if (otherAlreadySigned) {
+      showToast('✦ Les deux parties ont signé ! Génération du PDF...', 'success', 3000);
+      try {
+        const res = await fetch('/api/send-nda', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ matchId, entrepreneurId: agr.entrepreneur_id, investorId: agr.investor_id, type: 'nda', terms: agr.terms || {} })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (res.ok) showToast('✦ NCNDA finalisé ! PDF envoyé par email aux deux parties.', 'success', 6000);
+        else showToast('Contrat signé · Erreur email : ' + (d.error || ''), 'info', 5000);
+      } catch(e) { console.warn('send-nda:', e.message); }
+    } else {
+      showToast("✅ Signature enregistrée ! En attente de l'autre partie.", 'success', 4000);
+    }
+    await openMatchChat(matchId, profileId);
+  } catch(e) {
+    showToast('Erreur : ' + e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '✍️ Signer électroniquement'; }
+  }
 }
 
 async function downloadNDA(matchId) {
