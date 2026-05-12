@@ -1573,8 +1573,11 @@ async function openMatchChat(matchId, profileId) {
     return openMatchChat(matchId, profileId);
   }
 
-  // Compat backwards : si signed_at existe, considéré signé par les deux
-  const legacySigned = !!agreement.signed_at;
+  // Compat backwards : uniquement si les colonnes booléennes sont NULL (accord vraiment ancien, avant migration)
+  // Si elles sont false/true, on utilise les vraies valeurs
+  const legacySigned = !!agreement.signed_at
+    && agreement.entrepreneur_signed === null
+    && agreement.investor_signed === null;
   const isE = agreement.entrepreneur_id === currentProfile.id;
   const mySigned    = legacySigned || (isE ? agreement.entrepreneur_signed : agreement.investor_signed);
   const otherSigned = legacySigned || (isE ? agreement.investor_signed    : agreement.entrepreneur_signed);
