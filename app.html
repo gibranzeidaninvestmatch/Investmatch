@@ -916,7 +916,7 @@ async function handleRegister() {
 }
 
 async function handleLogout() {
-  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  try { sb.removeAllChannels(); } catch(_) {}
   await sb.auth.signOut();
   resetAppState();
   showToast('Déconnecté avec succès.', 'info');
@@ -1273,9 +1273,9 @@ async function doSwipe(action, card, profile) {
   try {
     await sb.from('swipes').upsert({ swiper_id: currentProfile.id, swiped_id: profile.id, action });
     if (action === 'like' || action === 'super') {
-      const { data: theirSwipe } = await sb.from('swipes').select('*')
+      const { data: theirSwipe } = await sb.from('swipes').select('id')
         .eq('swiper_id', profile.id).eq('swiped_id', currentProfile.id)
-        .in('action', ['like','super']).single();
+        .in('action', ['like','super']).maybeSingle();
       if (theirSwipe) await createMatch(profile);
     }
   } catch (e) { showToast('Erreur réseau, réessayez.', 'error'); }
@@ -1290,17 +1290,22 @@ async function createMatch(profile) {
   const u1 = currentProfile.id < profile.id ? currentProfile.id : profile.id;
   const u2 = currentProfile.id < profile.id ? profile.id : currentProfile.id;
   try {
-    const { data, error } = await sb.from('matches').upsert({ user1_id: u1, user2_id: u2 }, { onConflict: 'user1_id,user2_id' }).select().single();
-    if (!error && data) {
-      myMatches.push({ match: data, profile });
-      document.getElementById('stat-matches').textContent = myMatches.length;
-      updateMatchBadge();
-      showMatchPopup(profile);
-      buildMatchesGrid();
-      buildConversationsList();
-      // NDA automatique au match
-      triggerAutoNDA(data.id, profile);
+    // Cherche si le match existe déjà (évite doublons)
+    let { data: matchData } = await sb.from('matches').select('*').eq('user1_id', u1).eq('user2_id', u2).maybeSingle();
+    if (!matchData) {
+      const { data: ins, error } = await sb.from('matches').insert({ user1_id: u1, user2_id: u2 }).select().single();
+      if (error) { console.error('createMatch insert error:', error); showToast('Erreur lors de la création du match.', 'error'); return; }
+      matchData = ins;
     }
+    if (!myMatches.find(m => m.match.id === matchData.id)) {
+      myMatches.push({ match: matchData, profile });
+    }
+    document.getElementById('stat-matches').textContent = myMatches.length;
+    updateMatchBadge();
+    showMatchPopup(profile);
+    buildMatchesGrid();
+    buildConversationsList();
+    triggerAutoNDA(matchData.id, profile);
   } catch(e) { showToast('Erreur lors de la création du match.', 'error'); }
 }
 
@@ -1359,15 +1364,22 @@ function updateMatchBadge() {
 
 async function loadLikesReceived() {
   const FREE_LIKES_VISIBLE = 3;
-  // Profils qui ont liké currentUser mais pas encore matchés
-  const matchedIds = myMatches.map(m => m.profile.id);
+  const matchedIds = myMatches.map(m => m.profile?.id).filter(Boolean);
+  // Récupère les swipes reçus
   const { data: likes } = await sb.from('swipes')
-    .select('swiper_id, profiles!swiper_id(id, name, emoji, user_type, location, sector)')
+    .select('swiper_id')
     .eq('swiped_id', currentProfile.id)
     .eq('action', 'like')
     .order('created_at', { ascending: false });
+  if (!likes || !likes.length) { document.getElementById('likes-section').style.display = 'none'; return; }
+  // Charge les profils séparément (évite dépendance FK)
+  const swiperIds = likes.map(l => l.swiper_id);
+  const { data: swiperProfiles } = await sb.from('profiles').select('id,name,emoji,user_type,location,sector').in('id', swiperIds);
+  const profileMap = {};
+  (swiperProfiles || []).forEach(p => { profileMap[p.id] = p; });
+  const likesWithProfiles = likes.map(l => ({ swiper_id: l.swiper_id, profiles: profileMap[l.swiper_id] || null })).filter(l => l.profiles);
 
-  const unmatched = (likes || []).filter(l => !matchedIds.includes(l.swiper_id));
+  const unmatched = likesWithProfiles.filter(l => !matchedIds.includes(l.swiper_id));
   const section = document.getElementById('likes-section');
   const grid = document.getElementById('likes-grid');
   const badge = document.getElementById('likes-count-badge');
@@ -1410,21 +1422,34 @@ async function openLikeChat(swiperId) {
     openMatchChat(existing.match.id, existing.profile.id);
     return;
   }
-  // Pas encore matché → créer le match sans consommer de swipe (ils nous ont déjà liké)
+  // Pas encore matché → créer le match (ils nous ont déjà liké, on like en retour)
   try {
-    // Enregistre le swipe retour (ignore si déjà existant)
-    await sb.from('swipes').insert({ swiper_id: currentProfile.id, swiped_id: swiperId, action: 'like' });
-  } catch(_) {}
-  try {
-    const { data: profile } = await sb.from('profiles').select('*').eq('id', swiperId).single();
+    // Enregistre le swipe retour seulement s'il n'existe pas déjà
+    const { data: existingSwipe } = await sb.from('swipes')
+      .select('id').eq('swiper_id', currentProfile.id).eq('swiped_id', swiperId).maybeSingle();
+    if (!existingSwipe) {
+      await sb.from('swipes').insert({ swiper_id: currentProfile.id, swiped_id: swiperId, action: 'like' });
+    }
+
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', swiperId).maybeSingle();
     if (!profile) { showToast('Profil introuvable.', 'error'); return; }
+
     const u1 = currentProfile.id < swiperId ? currentProfile.id : swiperId;
     const u2 = currentProfile.id < swiperId ? swiperId : currentProfile.id;
-    const { data: matchRow, error } = await sb.from('matches')
-      .upsert({ user1_id: u1, user2_id: u2 }, { onConflict: 'user1_id,user2_id' })
-      .select().single();
-    if (error || !matchRow) { showToast('Erreur création du match.', 'error'); return; }
-    myMatches.push({ match: matchRow, profile, compatScore: computeCompatScore(currentProfile, profile) });
+
+    // SELECT d'abord → INSERT si pas trouvé (évite besoin de contrainte unique)
+    let { data: matchRow } = await sb.from('matches').select('*')
+      .eq('user1_id', u1).eq('user2_id', u2).maybeSingle();
+    if (!matchRow) {
+      const { data: ins, error: insErr } = await sb.from('matches')
+        .insert({ user1_id: u1, user2_id: u2 }).select().single();
+      if (insErr || !ins) { showToast('Erreur création du match.', 'error'); return; }
+      matchRow = ins;
+    }
+
+    if (!myMatches.find(m => m.match.id === matchRow.id)) {
+      myMatches.push({ match: matchRow, profile, compatScore: computeCompatScore(currentProfile, profile) });
+    }
     updateMatchBadge();
     document.getElementById('stat-matches').textContent = myMatches.length;
     buildMatchesGrid();
@@ -1579,9 +1604,22 @@ function setupRealtimeMessages(matchId) {
 }
 
 function setupRealtimeGlobal() {
-  sb.channel('global-matches')
+  // Écoute les matchs où on est user2 (id max)
+  sb.channel('global-matches-u2')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches',
       filter: `user2_id=eq.${currentProfile.id}` }, async () => {
+        const prevCount = myMatches.length;
+        await loadMatches();
+        if (myMatches.length > prevCount) {
+          const newest = myMatches[myMatches.length - 1];
+          showMatchPopup(newest.profile);
+        }
+      })
+    .subscribe();
+  // Écoute les matchs où on est user1 (id min)
+  sb.channel('global-matches-u1')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches',
+      filter: `user1_id=eq.${currentProfile.id}` }, async () => {
         const prevCount = myMatches.length;
         await loadMatches();
         if (myMatches.length > prevCount) {
