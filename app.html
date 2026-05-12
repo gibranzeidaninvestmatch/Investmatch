@@ -1533,19 +1533,44 @@ async function openMatchChat(matchId, profileId) {
     .order('created_at', { ascending: false }).limit(1).maybeSingle();
 
   if (!agreement) {
-    // 🔒 Pas d'accord — en cours de création
-    area.innerHTML = headerHTML + `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px;">
-        <div style="width:72px;height:72px;background:rgba(201,168,76,0.08);border:2px solid rgba(201,168,76,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">⏳</div>
-        <div>
-          <h3 style="color:var(--white);font-size:17px;margin:0 0 8px;font-weight:700;">Préparation du contrat…</h3>
-          <p style="color:var(--gray);font-size:13px;max-width:300px;margin:0 auto;line-height:1.6;">L'accord de confidentialité est en cours de création. Actualisez dans quelques secondes.</p>
-        </div>
-        <button onclick="openMatchChat('${matchId}','${p.id}')" style="padding:12px 28px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">
-          🔄 Actualiser
-        </button>
-      </div>`;
-    return;
+    // Pas d'accord — le créer maintenant (matchs existants ou création manquée)
+    const isE = currentProfile.user_type === 'entrepreneur';
+    const entrepreneurId = isE ? currentProfile.id : p.id;
+    const investorId     = isE ? p.id : currentProfile.id;
+    const { error: createErr } = await sb.from('agreements').insert({
+      match_id: matchId,
+      entrepreneur_id: entrepreneurId,
+      investor_id: investorId,
+      type: 'nda',
+      terms: {},
+      entrepreneur_signed: false,
+      investor_signed: false,
+    });
+    if (createErr && createErr.code !== '23505') {
+      // 23505 = unique violation : un autre insert concurrent, on continue quand même
+      showToast('Erreur création accord : ' + createErr.message, 'error');
+    }
+    // Re-charge l'accord qu'on vient de créer (ou qui existait déjà)
+    const { data: freshAgreement } = await sb.from('agreements')
+      .select('id, type, signed_at, entrepreneur_id, investor_id, entrepreneur_signed, investor_signed')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (!freshAgreement) {
+      area.innerHTML = headerHTML + `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px;">
+          <div style="width:72px;height:72px;background:rgba(201,168,76,0.08);border:2px solid rgba(201,168,76,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;">⚠️</div>
+          <div>
+            <h3 style="color:var(--white);font-size:17px;margin:0 0 8px;font-weight:700;">Erreur de chargement</h3>
+            <p style="color:var(--gray);font-size:13px;max-width:300px;margin:0 auto;line-height:1.6;">Impossible de préparer l'accord. Réessayez.</p>
+          </div>
+          <button onclick="openMatchChat('${matchId}','${p.id}')" style="padding:12px 28px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">
+            🔄 Réessayer
+          </button>
+        </div>`;
+      return;
+    }
+    // On a l'accord — continuer avec le rendu normal ci-dessous
+    return openMatchChat(matchId, profileId);
   }
 
   // Compat backwards : si signed_at existe, considéré signé par les deux
