@@ -38,12 +38,15 @@ module.exports = async (req, res) => {
     if (!entrepreneur || !investor) return res.status(404).json({ error: 'Profils introuvables.' });
 
     // Récupère les emails depuis auth.users (source officielle)
-    const [{ data: authUser1 }, { data: authUser2 }] = await Promise.all([
+    const [{ data: authUser1, error: authErr1 }, { data: authUser2, error: authErr2 }] = await Promise.all([
       sb.auth.admin.getUserById(entrepreneurId),
       sb.auth.admin.getUserById(investorId),
     ]);
+    if (authErr1) console.error('getUserById entrepreneur error:', authErr1);
+    if (authErr2) console.error('getUserById investor error:', authErr2);
     entrepreneur.email = authUser1?.user?.email;
     investor.email = authUser2?.user?.email;
+    console.log('Emails résolus:', { entrepreneur: entrepreneur.email, investor: investor.email });
     if (!entrepreneur.email || !investor.email) {
       return res.status(400).json({ error: 'Emails des utilisateurs introuvables.' });
     }
@@ -82,7 +85,7 @@ module.exports = async (req, res) => {
     }
 
     // ── Email à l'entrepreneur ──
-    await resend.emails.send({
+    const emailRes1 = await resend.emails.send({
       from: 'InvestMatch <onboarding@resend.dev>',
       to: entrepreneur.email,
       subject: type === 'nda'
@@ -91,9 +94,10 @@ module.exports = async (req, res) => {
       html: buildEmailHTML({ recipient: entrepreneur, other: investor, agreementId, hash, dateStr, type }),
       attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer.toString('base64') }],
     });
+    console.log('Email entrepreneur:', JSON.stringify(emailRes1));
 
     // ── Email à l'investisseur ──
-    await resend.emails.send({
+    const emailRes2 = await resend.emails.send({
       from: 'InvestMatch <onboarding@resend.dev>',
       to: investor.email,
       subject: type === 'nda'
@@ -102,6 +106,7 @@ module.exports = async (req, res) => {
       html: buildEmailHTML({ recipient: investor, other: entrepreneur, agreementId, hash, dateStr, type }),
       attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer.toString('base64') }],
     });
+    console.log('Email investisseur:', JSON.stringify(emailRes2));
 
     return res.status(200).json({ agreementId, hash });
 

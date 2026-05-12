@@ -1521,7 +1521,7 @@ async function openMatchChat(matchId, profileId) {
 
   // ── Vérifie si un accord existe ──
   const { data: agreement } = await sb.from('agreements')
-    .select('id, type').eq('match_id', matchId)
+    .select('id, type, signed_at').eq('match_id', matchId)
     .order('signed_at', { ascending: false }).limit(1).maybeSingle();
 
   if (!agreement) {
@@ -1544,15 +1544,24 @@ async function openMatchChat(matchId, profileId) {
   }
 
   // ✅ Accord signé — messagerie déverrouillée
+  const signedDate = agreement.signed_at
+    ? new Date(agreement.signed_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })
+    : '';
+  const contractLabel = agreement.type === 'ncnda' ? 'NCNDA complet' : 'NDA';
+
   area.innerHTML = headerHTML + `
     <div class="messages-list" id="msgs-area"></div>
-    <div style="padding:8px 16px;background:var(--navy-mid);border-top:1px solid rgba(255,255,255,0.04);display:flex;gap:8px;">
-      <button onclick="downloadNDA('${matchId}')" id="dl-nda-btn" style="flex:1;padding:9px;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.2);border-radius:8px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(201,168,76,0.12)'" onmouseout="this.style.background='rgba(201,168,76,0.05)'">
-        📄 Télécharger le NCNDA
-      </button>
-      <button onclick="openSealModal('${matchId}','${p.id}')" style="flex:1;padding:9px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:8px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(201,168,76,0.15)'" onmouseout="this.style.background='rgba(201,168,76,0.08)'">
-        ✦ Sceller l'accord
-      </button>
+    <div style="padding:8px 16px;background:var(--navy-mid);border-top:1px solid rgba(255,255,255,0.04);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:rgba(46,213,115,0.1);border:1px solid rgba(46,213,115,0.3);border-radius:20px;color:#2ed573;font-size:11px;font-weight:700;white-space:nowrap;">
+            ✅ ${contractLabel} signé${signedDate ? ' · ' + signedDate : ''}
+          </span>
+        </div>
+        <button onclick="downloadNDA('${matchId}')" id="dl-nda-btn" style="flex-shrink:0;padding:7px 14px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:8px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;" onmouseover="this.style.background='rgba(201,168,76,0.15)'" onmouseout="this.style.background='rgba(201,168,76,0.08)'">
+          📄 Télécharger le contrat
+        </button>
+      </div>
     </div>
     <div class="chat-input-area">
       <input class="chat-input" id="chat-input" placeholder="Votre message…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage('${matchId}');}"/>
