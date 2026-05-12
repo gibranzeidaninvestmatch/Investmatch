@@ -1530,7 +1530,7 @@ async function openMatchChat(matchId, profileId) {
   const { data: agreement } = await sb.from('agreements')
     .select('id, type, signed_at, entrepreneur_id, investor_id, entrepreneur_signed, investor_signed')
     .eq('match_id', matchId)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    .limit(1).maybeSingle();
 
   if (!agreement) {
     // Pas d'accord — le créer maintenant (matchs existants ou création manquée)
@@ -1554,7 +1554,7 @@ async function openMatchChat(matchId, profileId) {
     const { data: freshAgreement } = await sb.from('agreements')
       .select('id, type, signed_at, entrepreneur_id, investor_id, entrepreneur_signed, investor_signed')
       .eq('match_id', matchId)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      .limit(1).maybeSingle();
     if (!freshAgreement) {
       area.innerHTML = headerHTML + `
         <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px;">
