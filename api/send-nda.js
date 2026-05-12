@@ -84,9 +84,11 @@ module.exports = async (req, res) => {
       }
     }
 
+    const FROM = process.env.RESEND_FROM || 'InvestMatch <onboarding@resend.dev>';
+
     // ── Email à l'entrepreneur ──
-    const emailRes1 = await resend.emails.send({
-      from: 'InvestMatch <onboarding@resend.dev>',
+    const { data: emailData1, error: emailErr1 } = await resend.emails.send({
+      from: FROM,
       to: entrepreneur.email,
       subject: type === 'nda'
         ? `Accord de confidentialité — Match avec ${investor.name}`
@@ -94,11 +96,15 @@ module.exports = async (req, res) => {
       html: buildEmailHTML({ recipient: entrepreneur, other: investor, agreementId, hash, dateStr, type }),
       attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer.toString('base64') }],
     });
-    console.log('Email entrepreneur:', JSON.stringify(emailRes1));
+    if (emailErr1) {
+      console.error('Resend error entrepreneur:', JSON.stringify(emailErr1));
+      return res.status(500).json({ error: 'Erreur envoi email : ' + (emailErr1.message || JSON.stringify(emailErr1)) });
+    }
+    console.log('Email entrepreneur envoyé:', emailData1?.id);
 
     // ── Email à l'investisseur ──
-    const emailRes2 = await resend.emails.send({
-      from: 'InvestMatch <onboarding@resend.dev>',
+    const { data: emailData2, error: emailErr2 } = await resend.emails.send({
+      from: FROM,
       to: investor.email,
       subject: type === 'nda'
         ? `Accord de confidentialité — Match avec ${entrepreneur.name}`
@@ -106,7 +112,11 @@ module.exports = async (req, res) => {
       html: buildEmailHTML({ recipient: investor, other: entrepreneur, agreementId, hash, dateStr, type }),
       attachments: [{ filename: `NCNDA_InvestMatch_${agreementId.slice(0,8)}.pdf`, content: pdfBuffer.toString('base64') }],
     });
-    console.log('Email investisseur:', JSON.stringify(emailRes2));
+    if (emailErr2) {
+      console.error('Resend error investisseur:', JSON.stringify(emailErr2));
+      return res.status(500).json({ error: 'Erreur envoi email : ' + (emailErr2.message || JSON.stringify(emailErr2)) });
+    }
+    console.log('Email investisseur envoyé:', emailData2?.id);
 
     return res.status(200).json({ agreementId, hash });
 
