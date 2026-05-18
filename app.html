@@ -934,7 +934,7 @@ function resetAppState() {
   activeMatchId = null;
   sealMatchId = null;
   sealOtherProfileId = null;
-  const areas = ['msgs-area','matches-grid','convos-list','discover-area'];
+  const areas = ['msgs-area','matches-grid','conversations-list','discover-area'];
   areas.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
 }
 
@@ -1305,7 +1305,7 @@ async function createMatch(profile) {
     showMatchPopup(profile);
     buildMatchesGrid();
     buildConversationsList();
-    triggerAutoNDA(matchData.id, profile);
+    await triggerAutoNDA(matchData.id, profile);
   } catch(e) { showToast('Erreur lors de la création du match.', 'error'); }
 }
 
@@ -1462,7 +1462,7 @@ async function openLikeChat(swiperId) {
     buildMatchesGrid();
     buildConversationsList();
     loadLikesReceived();
-    triggerAutoNDA(matchRow.id, profile);
+    await triggerAutoNDA(matchRow.id, profile);
     openMatchChat(matchRow.id, profile.id);
   } catch(e) { showToast('Erreur : ' + e.message, 'error'); }
 }
@@ -1828,6 +1828,29 @@ function setupRealtimeGlobal() {
         if (myMatches.length > prevCount) {
           const newest = myMatches[myMatches.length - 1];
           showMatchPopup(newest.profile);
+        }
+      })
+    .subscribe();
+
+  // Écoute les mises à jour d'accords — rafraîchit le chat si l'autre partie vient de signer
+  sb.channel('global-agreements')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'agreements' },
+      async (payload) => {
+        const agr = payload.new;
+        // Vérifie si cet accord concerne l'utilisateur courant et le chat actuellement ouvert
+        if (!activeMatchId || agr.match_id !== activeMatchId) return;
+        if (agr.entrepreneur_id !== currentProfile.id && agr.investor_id !== currentProfile.id) return;
+        const bothSigned = agr.entrepreneur_signed && agr.investor_signed;
+        const isE = agr.entrepreneur_id === currentProfile.id;
+        const mySigned = isE ? agr.entrepreneur_signed : agr.investor_signed;
+        const otherSigned = isE ? agr.investor_signed : agr.entrepreneur_signed;
+        // Si l'autre vient de signer et que moi j'avais déjà signé → débloquer le chat automatiquement
+        if (mySigned && otherSigned && bothSigned) {
+          showToast('✦ Les deux parties ont signé ! Chat débloqué.', 'success', 4000);
+          const matchData = myMatches.find(m => m.match.id === activeMatchId);
+          if (matchData) openMatchChat(activeMatchId, matchData.profile.id);
+        } else if (otherSigned && !mySigned) {
+          // L'autre a signé mais pas moi → rien à faire, je suis déjà sur l'écran de signature
         }
       })
     .subscribe();
