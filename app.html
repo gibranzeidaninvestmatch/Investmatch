@@ -966,7 +966,11 @@ async function loadProfile(retryCount = 0) {
       await new Promise(r => setTimeout(r, 2000));
       return loadProfile(retryCount + 1);
     }
-    hideLoader(); showAuth();
+    // Échec définitif → nettoie la session périmée et retourne au login
+    hideLoader();
+    try { await sb.auth.signOut(); } catch(_) {}
+    currentUser = null; currentProfile = null;
+    showAuth();
     return;
   }
 
@@ -978,10 +982,12 @@ async function loadProfile(retryCount = 0) {
     return;
   }
 
-  // Autre erreur Supabase (RLS, réseau, etc.)
+  // Autre erreur Supabase (RLS, réseau, 401 session invalide, etc.)
   if (error) {
     hideLoader();
-    showToast('Erreur de chargement du profil. Réessayez.', 'error');
+    try { await sb.auth.signOut(); } catch(_) {}
+    currentUser = null; currentProfile = null;
+    showToast('Erreur de session. Reconnectez-vous.', 'error');
     showAuth();
     return;
   }
