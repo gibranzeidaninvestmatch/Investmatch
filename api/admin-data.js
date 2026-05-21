@@ -40,8 +40,8 @@ module.exports = async (req, res) => {
     // 3. Tous les accords
     const { data: agreements, error: agreementsErr } = await sb
       .from('agreements')
-      .select('id, match_id, entrepreneur_id, investor_id, type, terms, signed_at, entrepreneur_signed, investor_signed, created_at')
-      .order('created_at', { ascending: false });
+      .select('id, match_id, entrepreneur_id, investor_id, type, terms, signed_at, entrepreneur_signed, investor_signed')
+      .order('signed_at', { ascending: false, nullsFirst: false });
     if (agreementsErr) throw new Error('agreements: ' + agreementsErr.message);
 
     // 4. Emails depuis auth.users (un seul appel listUsers)
