@@ -2680,19 +2680,15 @@ function obClose() {
 let isAdmin = false;
 let adminCache = null;
 
+const ADMIN_EMAIL = 'gibran.zeidan20@gmail.com';
+
 async function checkAdminAccess() {
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    const res = await fetch('/api/admin-data', {
-      headers: { 'Authorization': 'Bearer ' + session.access_token }
-    });
-    if (res.ok) {
-      isAdmin = true;
-      const navBtn = document.getElementById('nav-admin');
-      if (navBtn) navBtn.style.display = '';
-    }
-  } catch(_) { /* pas admin ou réseau */ }
+  // Vérification directe sur l'email — immédiate et fiable
+  if (currentUser?.email === ADMIN_EMAIL) {
+    isAdmin = true;
+    const navBtn = document.getElementById('nav-admin');
+    if (navBtn) navBtn.style.display = '';
+  }
 }
 
 async function loadAdminDashboard(forceRefresh = false) {
