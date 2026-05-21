@@ -293,6 +293,38 @@ select.fi option{background:var(--navy-mid)}
 .content::-webkit-scrollbar,.messages-list::-webkit-scrollbar{width:4px}
 .content::-webkit-scrollbar-thumb,.messages-list::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.2);border-radius:2px}
 
+/* ── ADMIN ── */
+#page-admin{display:none}
+#page-admin.active{display:block}
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--navy-card);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);padding:20px 22px;}
+.stat-card .sc-val{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:var(--gold);line-height:1;}
+.stat-card .sc-label{font-size:12px;color:var(--gray);margin-top:6px;font-weight:500;}
+.stat-card .sc-sub{font-size:11px;color:rgba(138,155,181,0.55);margin-top:3px;}
+.admin-section{background:var(--navy-card);border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
+.admin-section-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.admin-section-title{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;}
+.admin-section-count{font-size:11px;color:var(--gray);background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:100px;}
+.admin-table{width:100%;border-collapse:collapse;}
+.admin-table th{font-size:11px;font-weight:600;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;background:rgba(255,255,255,0.02);}
+.admin-table td{font-size:13px;color:var(--white);padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle;}
+.admin-table tr:last-child td{border-bottom:none;}
+.admin-table tr:hover td{background:rgba(255,255,255,0.02);}
+.td-muted{color:var(--gray)!important;font-size:12px!important;}
+.td-mono{font-family:monospace;font-size:11px;color:var(--gray);}
+.badge-signed{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;background:rgba(46,204,138,0.12);color:#2ECC8A;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-pending{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;background:rgba(201,168,76,0.12);color:var(--gold);font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-none{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;background:rgba(138,155,181,0.1);color:var(--gray);font-size:11px;font-weight:500;}
+.badge-prem{display:inline-flex;align-items:center;padding:2px 7px;border-radius:100px;background:rgba(201,168,76,0.15);color:var(--gold);font-size:10px;font-weight:700;}
+.admin-empty{padding:28px 20px;text-align:center;color:var(--gray);font-size:13px;}
+.admin-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.admin-topbar h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;}
+.admin-refresh-btn{padding:8px 16px;background:var(--gold-dim);border:1px solid rgba(201,168,76,0.3);border-radius:8px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.admin-refresh-btn:hover{background:var(--gold);color:var(--navy)}
+.admin-refresh-btn:disabled{opacity:.5;cursor:not-allowed}
+.admin-type-e{color:var(--gold);font-size:11px;font-weight:600;}
+.admin-type-i{color:#6BB3F0;font-size:11px;font-weight:600;}
+
 /* ── FILTER BAR ── */
 .filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
 .filter-sel{padding:7px 14px 7px 10px;background:rgba(11,22,40,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;transition:border-color .2s;}
@@ -517,6 +549,7 @@ select.fi option{background:var(--navy-mid)}
       <button class="nav-item" onclick="showPage('matches',this)"><span class="icon">❤️</span> Mes matchs <span class="nbadge" id="match-count" style="display:none">0</span></button>
       <button class="nav-item" onclick="showPage('messages',this)"><span class="icon">💬</span> Messages <span class="nbadge" id="msg-badge" style="display:none">0</span></button>
       <button class="nav-item" onclick="showPage('profile',this)"><span class="icon">👤</span> Mon profil</button>
+      <button class="nav-item" id="nav-admin" style="display:none" onclick="showPage('admin',this)"><span class="icon">⚙️</span> Admin</button>
     </div>
     <div class="sidebar-footer">
       <div style="font-size:11px;color:rgba(138,155,181,0.3)">Beta v2.0 · © 2025 InvestMatch</div>
@@ -619,6 +652,13 @@ select.fi option{background:var(--navy-mid)}
           <div class="chat-area" id="chat-area">
             <div class="no-chat"><div style="font-size:40px">💬</div><p>Sélectionnez une conversation</p></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div id="page-admin">
+        <div id="admin-content">
+          <div class="admin-empty">⏳ Chargement…</div>
         </div>
       </div>
 
@@ -1252,6 +1292,8 @@ async function launchApp() {
   if (!currentProfile.is_premium) showToast(`Bienvenue, ${currentProfile.name.split(' ')[0]} !`, 'success');
   // Onboarding pour les nouveaux utilisateurs
   if (!localStorage.getItem(OB_KEY)) setTimeout(obStart, 800);
+  // Vérifie l'accès admin en arrière-plan
+  checkAdminAccess();
 }
 
 // ═══════════════════════════════════════
@@ -2293,19 +2335,21 @@ function buildProfilePage() {
 function showPage(page, btn) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  ['discover','matches','messages','profile'].forEach(p => {
+  ['discover','matches','messages','profile','admin'].forEach(p => {
     const el = document.getElementById('page-'+p);
-    el.classList.toggle('active', p===page);
+    if (el) el.classList.toggle('active', p===page);
   });
   const titles = {
     discover: ['Découvrir','Swipez les profils compatibles'],
-    matches: ['Mes Matchs','Vos connexions mutuelles'],
+    matches:  ['Mes Matchs','Vos connexions mutuelles'],
     messages: ['Messages','Vos conversations'],
-    profile: ['Mon Profil','Vos informations']
+    profile:  ['Mon Profil','Vos informations'],
+    admin:    ['Dashboard Admin','Vue globale de la plateforme'],
   };
-  document.getElementById('page-title').textContent = titles[page][0];
-  document.getElementById('page-sub').textContent = titles[page][1];
+  document.getElementById('page-title').textContent = (titles[page] || titles.discover)[0];
+  document.getElementById('page-sub').textContent   = (titles[page] || titles.discover)[1];
   if (page === 'messages') buildConversationsList();
+  if (page === 'admin') loadAdminDashboard();
 }
 
 // ═══════════════════════════════════════
@@ -2628,6 +2672,203 @@ function obNext() {
 function obClose() {
   document.getElementById('onboarding-overlay').classList.remove('show');
   localStorage.setItem(OB_KEY, '1');
+}
+
+// ═══════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════
+let isAdmin = false;
+let adminCache = null;
+
+async function checkAdminAccess() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const res = await fetch('/api/admin-data', {
+      headers: { 'Authorization': 'Bearer ' + session.access_token }
+    });
+    if (res.ok) {
+      isAdmin = true;
+      const navBtn = document.getElementById('nav-admin');
+      if (navBtn) navBtn.style.display = '';
+    }
+  } catch(_) { /* pas admin ou réseau */ }
+}
+
+async function loadAdminDashboard(forceRefresh = false) {
+  const container = document.getElementById('admin-content');
+  if (!container) return;
+
+  // Utilise le cache sauf si forceRefresh
+  if (adminCache && !forceRefresh) {
+    renderAdminDashboard(adminCache);
+    return;
+  }
+
+  container.innerHTML = `<div class="admin-empty">⏳ Chargement des données…</div>`;
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { container.innerHTML = `<div class="admin-empty">❌ Session expirée.</div>`; return; }
+
+    const res = await fetch('/api/admin-data', {
+      headers: { 'Authorization': 'Bearer ' + session.access_token }
+    });
+    if (res.status === 403) { container.innerHTML = `<div class="admin-empty">🔒 Accès refusé.</div>`; return; }
+    if (!res.ok) throw new Error(await res.text());
+
+    const data = await res.json();
+    adminCache = data;
+    renderAdminDashboard(data);
+  } catch(e) {
+    container.innerHTML = `<div class="admin-empty">❌ Erreur : ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderAdminDashboard(data) {
+  const { stats, profiles, matches, agreements, generatedAt } = data;
+  const container = document.getElementById('admin-content');
+  const refreshedAt = generatedAt
+    ? new Date(generatedAt).toLocaleString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+    : '—';
+
+  const fmtCurrency = n => n
+    ? n.toLocaleString('fr-FR', { style:'currency', currency:'EUR', maximumFractionDigits:0 })
+    : '—';
+  const fmtDate = s => s
+    ? new Date(s).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' })
+    : '—';
+
+  // ── Stats cards ──────────────────────────────────────────────────
+  const statsHTML = `
+  <div class="admin-topbar">
+    <h2>⚙️ Dashboard Admin</h2>
+    <button class="admin-refresh-btn" id="admin-refresh-btn" onclick="loadAdminDashboard(true)">
+      🔄 Rafraîchir
+    </button>
+  </div>
+  <div style="font-size:11px;color:rgba(138,155,181,0.4);margin-bottom:20px;">Dernière mise à jour : ${refreshedAt}</div>
+  <div class="admin-stats">
+    <div class="stat-card">
+      <div class="sc-val">${stats.totalUsers}</div>
+      <div class="sc-label">👥 Utilisateurs</div>
+      <div class="sc-sub">${stats.entrepreneurs} entrepreneurs · ${stats.investors} investisseurs</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-val">${stats.premium}</div>
+      <div class="sc-label">⚡ Comptes Premium</div>
+      <div class="sc-sub">${stats.totalUsers > 0 ? Math.round(stats.premium/stats.totalUsers*100) : 0}% du total</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-val">${stats.totalMatches}</div>
+      <div class="sc-label">🤝 Matchs créés</div>
+      <div class="sc-sub">${stats.signedAgreements} NCNDA signés</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-val">${stats.pendingAgreements}</div>
+      <div class="sc-label">📝 NCNDA en attente</div>
+      <div class="sc-sub">${stats.signedAgreements} signés sur ${stats.signedAgreements + stats.pendingAgreements}</div>
+    </div>
+    <div class="stat-card" style="border-color:rgba(201,168,76,0.2);">
+      <div class="sc-val">${fmtCurrency(stats.totalCommission)}</div>
+      <div class="sc-label">💰 Commissions estimées</div>
+      <div class="sc-sub">Accords avec montant déclaré</div>
+    </div>
+  </div>`;
+
+  // ── Table utilisateurs ────────────────────────────────────────────
+  const usersRows = profiles.length ? profiles.map(p => `
+    <tr>
+      <td>${escapeHtml(p.emoji || (p.user_type === 'entrepreneur' ? '🚀' : '💼'))}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td><span class="${p.user_type === 'entrepreneur' ? 'admin-type-e' : 'admin-type-i'}">${p.user_type === 'entrepreneur' ? 'Entrepreneur' : 'Investisseur'}</span></td>
+      <td class="td-muted">${escapeHtml(p.email)}</td>
+      <td>${p.is_premium ? '<span class="badge-prem">⚡ Premium</span>' : '<span style="color:var(--gray);font-size:12px;">—</span>'}</td>
+      <td class="td-muted">${fmtDate(p.created_at)}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="6" class="admin-empty">Aucun utilisateur</td></tr>`;
+
+  const usersHTML = `
+  <div class="admin-section">
+    <div class="admin-section-head">
+      <span class="admin-section-title">👥 Utilisateurs</span>
+      <span class="admin-section-count">${profiles.length}</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead><tr>
+          <th></th><th>Nom</th><th>Type</th><th>Email</th><th>Plan</th><th>Inscrit le</th>
+        </tr></thead>
+        <tbody>${usersRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  // ── Table matchs ─────────────────────────────────────────────────
+  const matchBadge = s => s === 'signed'
+    ? '<span class="badge-signed">✅ Signé</span>'
+    : s === 'pending'
+      ? '<span class="badge-pending">⏳ En attente</span>'
+      : '<span class="badge-none">— Sans accord</span>';
+
+  const matchRows = matches.length ? matches.map(m => `
+    <tr>
+      <td>
+        <span class="${m.type1 === 'entrepreneur' ? 'admin-type-e' : 'admin-type-i'}">${escapeHtml(m.name1)}</span>
+      </td>
+      <td>
+        <span class="${m.type2 === 'entrepreneur' ? 'admin-type-e' : 'admin-type-i'}">${escapeHtml(m.name2)}</span>
+      </td>
+      <td>${fmtDate(m.created_at)}</td>
+      <td>${matchBadge(m.agreementStatus)}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="4" class="admin-empty">Aucun match</td></tr>`;
+
+  const matchesHTML = `
+  <div class="admin-section">
+    <div class="admin-section-head">
+      <span class="admin-section-title">🤝 Matchs récents</span>
+      <span class="admin-section-count">${matches.length}</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Partie 1</th><th>Partie 2</th><th>Date du match</th><th>Statut NCNDA</th>
+        </tr></thead>
+        <tbody>${matchRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  // ── Table accords signés ──────────────────────────────────────────
+  const agrRows = agreements.length ? agreements.map(a => `
+    <tr>
+      <td class="admin-type-e">${escapeHtml(a.entrepreneurName)}</td>
+      <td class="admin-type-i">${escapeHtml(a.investorName)}</td>
+      <td class="td-muted">${escapeHtml(a.terms?.amount || '—')}</td>
+      <td style="color:var(--green);font-weight:600;">${a.commissionStr || '<span style="color:var(--gray);font-size:12px;">Non déclaré</span>'}</td>
+      <td>${fmtDate(a.signed_at)}</td>
+      <td class="td-mono">${a.id.slice(0, 8)}…</td>
+    </tr>`).join('')
+    : `<tr><td colspan="6" class="admin-empty">Aucun accord signé</td></tr>`;
+
+  const agreementsHTML = `
+  <div class="admin-section">
+    <div class="admin-section-head">
+      <span class="admin-section-title">📝 Accords NCNDA signés</span>
+      <span class="admin-section-count">${agreements.length}</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead><tr>
+          <th>Entrepreneur</th><th>Investisseur</th><th>Montant déclaré</th><th>Commission estimée</th><th>Signé le</th><th>Référence</th>
+        </tr></thead>
+        <tbody>${agrRows}</tbody>
+      </table>
+    </div>
+  </div>`;
+
+  container.innerHTML = statsHTML + usersHTML + matchesHTML + agreementsHTML;
 }
 
 // ── START ──
