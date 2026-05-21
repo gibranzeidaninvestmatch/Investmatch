@@ -905,14 +905,21 @@ async function handleRegister() {
   if (password.length < 8) return showAuthMsg('Le mot de passe doit faire au moins 8 caractères.');
   const btn = document.getElementById('register-btn');
   btn.disabled = true; btn.textContent = 'Création…';
+  // Bloque onAuthStateChange pour éviter que SIGNED_IN déclenche loadProfile
+  // sur un profil qui n'existe pas encore
+  _profileLoading = true;
   const { data, error } = await sb.auth.signUp({ email, password, options: { data: { user_type: userType } } });
   btn.disabled = false; btn.textContent = 'Créer mon compte →';
-  if (error) return showAuthMsg(error.message);
+  if (error) {
+    _profileLoading = false;
+    return showAuthMsg(error.message);
+  }
   if (data.user) {
     currentUser = data.user;
     hideAuth(); showSetup(userType);
     showToast('Compte créé ! Complétez votre profil.', 'success');
   }
+  _profileLoading = false;
 }
 
 async function handleLogout() {
@@ -941,29 +948,29 @@ function resetAppState() {
 // ═══════════════════════════════════════
 // PROFILE LOAD & SETUP
 // ═══════════════════════════════════════
-async function loadProfile() {
+async function loadProfile(retryCount = 0) {
   setLoader('Chargement du profil…');
   let data = null, error = null, timedOut = false;
   try {
-    const timeout = new Promise((_, rej) => setTimeout(() => { timedOut = true; rej(new Error('timeout')); }, 6000));
+    const timeout = new Promise((_, rej) => setTimeout(() => { timedOut = true; rej(new Error('timeout')); }, 8000));
     const result = await Promise.race([
-      sb.from('profiles').select('*').eq('id', currentUser.id).single(),
+      sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle(),
       timeout
     ]);
     data = result.data; error = result.error;
   } catch(e) {
-    if (timedOut) {
-      // Erreur réseau / timeout : on retente une fois
+    if (timedOut && retryCount < 2) {
+      // Réseau lent : on retente max 2 fois
       hideLoader();
       showToast('Connexion lente, nouvelle tentative…', 'info');
       await new Promise(r => setTimeout(r, 2000));
-      return loadProfile();
+      return loadProfile(retryCount + 1);
     }
     hideLoader(); showAuth();
     return;
   }
 
-  // Pas de profil encore créé → setup
+  // Pas de profil encore créé → setup (maybeSingle retourne data=null sans erreur)
   if (error?.code === 'PGRST116' || (!data && !error)) {
     hideLoader();
     const userType = currentUser.user_metadata?.user_type || 'entrepreneur';
