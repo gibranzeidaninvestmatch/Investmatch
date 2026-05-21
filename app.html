@@ -1422,49 +1422,64 @@ async function loadLikesReceived() {
 }
 
 async function openLikeChat(swiperId) {
-  // Vérifie si déjà matché
-  await loadMatches();
-  const existing = myMatches.find(m => m.profile?.id === swiperId);
-  if (existing) {
-    openMatchChat(existing.match.id, existing.profile.id);
-    return;
-  }
-  // Pas encore matché → créer le match (ils nous ont déjà liké, on like en retour)
+  if (!currentProfile) { showToast('Session expirée, rechargez la page.', 'error'); return; }
   try {
+    // Vérifie si déjà matché
+    await loadMatches();
+    const existing = myMatches.find(m => m.profile?.id === swiperId);
+    if (existing) {
+      await openMatchChat(existing.match.id, existing.profile.id);
+      return;
+    }
+
+    // Charge le profil de la personne qui a liké
+    const { data: profile, error: profileErr } = await sb.from('profiles').select('*').eq('id', swiperId).maybeSingle();
+    if (profileErr || !profile) { showToast('Profil introuvable.', 'error'); return; }
+
     // Enregistre le swipe retour seulement s'il n'existe pas déjà
     const { data: existingSwipe } = await sb.from('swipes')
       .select('id').eq('swiper_id', currentProfile.id).eq('swiped_id', swiperId).maybeSingle();
     if (!existingSwipe) {
-      await sb.from('swipes').insert({ swiper_id: currentProfile.id, swiped_id: swiperId, action: 'like' });
+      const { error: swipeErr } = await sb.from('swipes').insert({ swiper_id: currentProfile.id, swiped_id: swiperId, action: 'like' });
+      if (swipeErr) console.warn('Swipe insert warn:', swipeErr.message);
     }
 
-    const { data: profile } = await sb.from('profiles').select('*').eq('id', swiperId).maybeSingle();
-    if (!profile) { showToast('Profil introuvable.', 'error'); return; }
-
+    // Cherche ou crée le match
     const u1 = currentProfile.id < swiperId ? currentProfile.id : swiperId;
     const u2 = currentProfile.id < swiperId ? swiperId : currentProfile.id;
 
-    // SELECT d'abord → INSERT si pas trouvé (évite besoin de contrainte unique)
-    let { data: matchRow } = await sb.from('matches').select('*')
+    let { data: matchRow, error: selErr } = await sb.from('matches').select('*')
       .eq('user1_id', u1).eq('user2_id', u2).maybeSingle();
+
     if (!matchRow) {
       const { data: ins, error: insErr } = await sb.from('matches')
         .insert({ user1_id: u1, user2_id: u2 }).select().single();
-      if (insErr || !ins) { showToast('Erreur création du match.', 'error'); return; }
-      matchRow = ins;
+      if (insErr) {
+        console.error('Match insert error:', insErr);
+        // Peut-être que le match vient d'être créé en parallèle — retente SELECT
+        const { data: retry } = await sb.from('matches').select('*').eq('user1_id', u1).eq('user2_id', u2).maybeSingle();
+        if (!retry) { showToast('Erreur création du match : ' + insErr.message, 'error'); return; }
+        matchRow = retry;
+      } else {
+        matchRow = ins;
+      }
     }
 
     if (!myMatches.find(m => m.match.id === matchRow.id)) {
       myMatches.push({ match: matchRow, profile, compatScore: computeCompatScore(currentProfile, profile) });
     }
     updateMatchBadge();
-    document.getElementById('stat-matches').textContent = myMatches.length;
+    const statEl = document.getElementById('stat-matches');
+    if (statEl) statEl.textContent = myMatches.length;
     buildMatchesGrid();
     buildConversationsList();
     loadLikesReceived();
     await triggerAutoNDA(matchRow.id, profile);
-    openMatchChat(matchRow.id, profile.id);
-  } catch(e) { showToast('Erreur : ' + e.message, 'error'); }
+    await openMatchChat(matchRow.id, profile.id);
+  } catch(e) {
+    console.error('openLikeChat error:', e);
+    showToast('Erreur : ' + e.message, 'error');
+  }
 }
 
 function buildMatchesGrid() {
@@ -1836,9 +1851,10 @@ function setupRealtimeGlobal() {
   sb.channel('global-agreements')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'agreements' },
       async (payload) => {
+        if (!currentProfile || !activeMatchId) return;
         const agr = payload.new;
         // Vérifie si cet accord concerne l'utilisateur courant et le chat actuellement ouvert
-        if (!activeMatchId || agr.match_id !== activeMatchId) return;
+        if (agr.match_id !== activeMatchId) return;
         if (agr.entrepreneur_id !== currentProfile.id && agr.investor_id !== currentProfile.id) return;
         const bothSigned = agr.entrepreneur_signed && agr.investor_signed;
         const isE = agr.entrepreneur_id === currentProfile.id;
