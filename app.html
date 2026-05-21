@@ -292,6 +292,71 @@ select.fi option{background:var(--navy-mid)}
 .msg-entry{animation:msgIn .2s ease both}
 .content::-webkit-scrollbar,.messages-list::-webkit-scrollbar{width:4px}
 .content::-webkit-scrollbar-thumb,.messages-list::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.2);border-radius:2px}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filter-sel{padding:7px 14px 7px 10px;background:rgba(11,22,40,0.8);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;cursor:pointer;transition:border-color .2s;}
+.filter-sel:focus,.filter-sel.on{border-color:var(--gold);color:var(--gold)}
+.filter-sel option{background:var(--navy-mid)}
+.filter-reset{padding:7px 12px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;display:none;}
+.filter-reset.visible{display:inline-block}
+.filter-reset:hover{border-color:rgba(201,168,76,0.3);color:var(--gold)}
+.filter-count{font-size:11px;color:var(--gray);margin-left:4px;}
+
+/* ── PROFILE DETAIL MODAL ── */
+#profile-detail-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(11,22,40,0.92);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;}
+#profile-detail-modal.show{display:flex}
+.detail-card{background:var(--navy-mid);border:1px solid rgba(201,168,76,0.15);border-radius:24px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;animation:popIn .3s ease both;display:flex;flex-direction:column;}
+.detail-card::-webkit-scrollbar{width:3px}
+.detail-card::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.2);border-radius:2px}
+.detail-dhead{padding:28px 28px 20px;background:linear-gradient(135deg,var(--navy-light) 0%,var(--navy-card) 100%);border-radius:24px 24px 0 0;position:relative;}
+.detail-close-btn{position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);border:none;color:var(--gray);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.detail-close-btn:hover{background:rgba(255,255,255,0.15);color:var(--white)}
+.detail-dbody{padding:20px 28px;flex:1;}
+.detail-section{margin-bottom:14px}
+.detail-section-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray);margin-bottom:5px}
+.detail-section-value{font-size:14px;color:var(--white);line-height:1.6}
+.detail-actions{padding:16px 28px 24px;display:flex;gap:12px;}
+.detail-pass-btn{flex:1;padding:12px;border-radius:10px;background:rgba(224,92,106,0.1);border:1px solid rgba(224,92,106,0.3);color:var(--red);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;}
+.detail-pass-btn:hover{background:rgba(224,92,106,0.2)}
+.detail-like-btn{flex:2;padding:12px;border-radius:10px;background:var(--gold);border:none;color:var(--navy);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;}
+.detail-like-btn:hover{background:var(--gold-light)}
+
+/* ── EDIT PROFILE MODAL ── */
+#edit-profile-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(11,22,40,0.95);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+#edit-profile-modal.show{display:flex}
+.edit-pcard{background:var(--navy-mid);border:1px solid rgba(201,168,76,0.2);border-radius:24px;padding:36px;max-width:520px;width:100%;margin:auto;}
+.edit-pcard h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--white);margin-bottom:24px;}
+.edit-save-btn{width:100%;padding:13px;border-radius:10px;background:var(--gold);color:var(--navy);border:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;}
+.edit-save-btn:hover{background:var(--gold-light)}
+.edit-save-btn:disabled{opacity:.5;cursor:not-allowed}
+.edit-cancel-btn{width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:8px;transition:all .2s;}
+.edit-cancel-btn:hover{color:var(--white);border-color:rgba(255,255,255,0.2)}
+
+/* ── ONBOARDING ── */
+#onboarding-overlay{display:none;position:fixed;inset:0;z-index:900;background:rgba(11,22,40,0.97);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:24px;}
+#onboarding-overlay.show{display:flex}
+.ob-guide-card{background:var(--navy-mid);border:1px solid rgba(201,168,76,0.25);border-radius:24px;padding:44px 40px;max-width:420px;width:100%;text-align:center;animation:popIn .4s ease both;}
+.ob-progress-dots{display:flex;justify-content:center;gap:8px;margin-bottom:32px;}
+.ob-pdot{height:6px;border-radius:3px;background:rgba(255,255,255,0.12);transition:all .3s;}
+.ob-pdot.cur{background:var(--gold);width:20px;}
+.ob-pdot:not(.cur){width:6px;}
+.ob-step-icon{font-size:54px;display:block;margin-bottom:16px;}
+.ob-step-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--white);margin-bottom:10px;}
+.ob-step-text{font-size:14px;color:var(--gray);line-height:1.7;margin-bottom:28px;}
+.ob-next-btn{width:100%;padding:14px;border-radius:10px;background:var(--gold);color:var(--navy);border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-bottom:10px;}
+.ob-next-btn:hover{background:var(--gold-light)}
+.ob-skip-btn{background:transparent;border:none;color:var(--gray);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ob-skip-btn:hover{color:var(--white)}
+
+/* ── BLURRED LIKES ── */
+.like-card-locked{position:relative;background:var(--navy-card);border:1px dashed rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;overflow:hidden;cursor:pointer;transition:transform .2s;}
+.like-card-locked:hover{transform:translateY(-2px)}
+.like-blur-inner{filter:blur(7px);pointer-events:none;user-select:none;}
+.like-lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:rgba(11,22,40,0.35);}
+.like-lock-overlay .ll-icon{font-size:22px;}
+.like-lock-overlay .ll-label{font-size:11px;color:var(--gold);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6);}
+.like-lock-overlay .ll-sub{font-size:10px;color:rgba(240,244,250,.6);text-shadow:0 1px 3px rgba(0,0,0,.6);}
 </style>
 </head>
 <body>
@@ -470,6 +535,30 @@ select.fi option{background:var(--navy-mid)}
 
       <!-- DISCOVER -->
       <div id="page-discover" class="active">
+        <!-- FILTER BAR -->
+        <div class="filter-bar" id="filter-bar">
+          <select class="filter-sel" id="filter-sector" onchange="applyFilters()">
+            <option value="">🏷️ Tous secteurs</option>
+            <option>AgriTech</option><option>FinTech</option><option>HealthTech</option>
+            <option>EdTech</option><option>E-commerce</option><option>Immobilier</option>
+            <option>CleanTech</option><option>SaaS</option><option>Marketplace</option>
+            <option>Impact social</option><option>Logistique</option><option>Commerce</option>
+          </select>
+          <select class="filter-sel" id="filter-stage" onchange="applyFilters()">
+            <option value="">📈 Tous stades</option>
+            <option>Idée</option><option>Pré-amorçage</option>
+            <option>Amorçage</option><option>Seed</option><option>Série A</option>
+          </select>
+          <select class="filter-sel" id="filter-ticket" onchange="applyFilters()">
+            <option value="">💰 Tout ticket</option>
+            <option value="small">Moins de 50k €</option>
+            <option value="mid">50k – 200k €</option>
+            <option value="large">200k – 1M €</option>
+            <option value="xlarge">Plus de 1M €</option>
+          </select>
+          <button class="filter-reset" id="filter-reset-btn" onclick="resetFilters()">✕ Réinitialiser</button>
+          <span class="filter-count" id="filter-count"></span>
+        </div>
         <div class="swipe-area">
           <div>
             <div class="card-stack" id="card-stack"></div>
@@ -489,7 +578,7 @@ select.fi option{background:var(--navy-mid)}
             <div class="info-card">
               <h4>🔥 Swipes disponibles</h4>
               <div class="swipe-counter">
-                <div class="swipe-count-num" id="swipes-left">5</div>
+                <div class="swipe-count-num" id="swipes-left">10</div>
                 <div class="swipe-count-label">swipes aujourd'hui</div>
               </div>
               <button class="premium-cta" onclick="showPremiumModal()">✦ Passer Premium</button>
@@ -538,11 +627,12 @@ select.fi option{background:var(--navy-mid)}
         <div class="profile-view">
           <div class="profile-hero">
             <div class="profile-hero-avatar" id="ph-avatar">🚀</div>
-            <div>
+            <div style="flex:1">
               <div class="profile-hero-name" id="ph-name">—</div>
               <div class="profile-hero-role" id="ph-role">—</div>
               <div class="profile-hero-tags" id="ph-tags"></div>
             </div>
+            <button onclick="openProfileEdit()" style="flex-shrink:0;padding:9px 18px;border-radius:10px;background:var(--gold-dim);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='var(--gold)';this.style.color='var(--navy)'" onmouseout="this.style.background='var(--gold-dim)';this.style.color='var(--gold)'">✏️ Modifier</button>
           </div>
           <div class="profile-info-grid" id="ph-grid"></div>
           <div class="premium-banner">
@@ -634,6 +724,40 @@ select.fi option{background:var(--navy-mid)}
   </div>
 </div>
 
+<!-- PROFILE DETAIL MODAL -->
+<div id="profile-detail-modal">
+  <div class="detail-card" id="detail-card-inner">
+    <!-- populated by showProfileDetail() -->
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div id="edit-profile-modal">
+  <div class="edit-pcard">
+    <h2>✏️ Modifier mon profil</h2>
+    <div id="edit-profile-fields"><!-- populated by openProfileEdit() --></div>
+    <div id="edit-profile-sector-tags" style="margin-bottom:16px;display:none">
+      <label class="fl">Secteurs d'intérêt</label>
+      <div class="sector-tags" id="edit-sector-tags-list"></div>
+    </div>
+    <div id="edit-profile-error" class="auth-msg error" style="display:none"></div>
+    <button class="edit-save-btn" id="edit-save-btn" onclick="saveProfileEdit()">💾 Enregistrer les modifications</button>
+    <button class="edit-cancel-btn" onclick="closeProfileEdit()">Annuler</button>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div id="onboarding-overlay">
+  <div class="ob-guide-card">
+    <div class="ob-progress-dots" id="ob-dots"></div>
+    <span class="ob-step-icon" id="ob-icon"></span>
+    <div class="ob-step-title" id="ob-title"></div>
+    <div class="ob-step-text" id="ob-text"></div>
+    <button class="ob-next-btn" id="ob-next-btn" onclick="obNext()">Suivant →</button>
+    <button class="ob-skip-btn" onclick="obClose()">Passer l'intro</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════
 // CONFIG & STATE
@@ -663,6 +787,11 @@ let lastMessageTime = 0;
 let stats = { seen: 0, likes: 0 };
 let swipesLeft = FREE_SWIPES_PER_DAY;
 let isPremium = false; // À connecter avec Stripe
+let allDiscoverProfiles = []; // cache before filters
+let discoverFilters = { sector: '', stage: '', ticket: '' };
+let detailCardProfile = null; // profile shown in detail modal
+let obStep = 0; // onboarding step
+const OB_KEY = 'im_onboarded_v1';
 
 // ═══════════════════════════════════════
 // TOAST SYSTEM
@@ -1121,6 +1250,8 @@ async function launchApp() {
   buildProfilePage();
   setupRealtimeGlobal();
   if (!currentProfile.is_premium) showToast(`Bienvenue, ${currentProfile.name.split(' ')[0]} !`, 'success');
+  // Onboarding pour les nouveaux utilisateurs
+  if (!localStorage.getItem(OB_KEY)) setTimeout(obStart, 800);
 }
 
 // ═══════════════════════════════════════
@@ -1144,12 +1275,11 @@ async function loadDiscoverProfiles() {
     return;
   }
 
-  discoverProfiles = (data || [])
+  allDiscoverProfiles = (data || [])
     .map(p => ({ ...p, compatScore: computeCompatScore(currentProfile, p) }))
     .sort((a, b) => b.compatScore - a.compatScore);
 
-  discoverIdx = 0;
-  buildCards();
+  applyFilters();
 }
 
 function buildCards() {
@@ -1244,6 +1374,12 @@ function setupDrag(card, profile) {
     const dx = e.clientX - startX, dy = e.clientY - startY;
     likeOv.style.opacity = 0; passOv.style.opacity = 0; superOv.style.opacity = 0;
     card.style.transition = 'transform .3s ease';
+    // Tap (< 10px movement) → ouvre le profil complet
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      card.style.transform = '';
+      showProfileDetail(profile);
+      return;
+    }
     if (dy < -80 && Math.abs(dx) < 60) doSwipe('super', card, profile);
     else if (dx > 80) doSwipe('like', card, profile);
     else if (dx < -80) doSwipe('pass', card, profile);
@@ -1265,9 +1401,15 @@ function setupDrag(card, profile) {
   card.addEventListener('touchend', e => {
     if (!isDragging) return; isDragging = false;
     const t = e.changedTouches[0];
-    const dx = t.clientX - startX;
+    const dx = t.clientX - startX, dy = t.clientY - startY;
     likeOv.style.opacity = 0; passOv.style.opacity = 0;
     card.style.transition = 'transform .3s ease';
+    // Tap → profil complet
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      card.style.transform = '';
+      showProfileDetail(profile);
+      return;
+    }
     if (dx > 80) doSwipe('like', card, profile);
     else if (dx < -80) doSwipe('pass', card, profile);
     else card.style.transform = '';
@@ -1430,7 +1572,8 @@ async function loadLikesReceived() {
   hint.style.display = (!isPremium && hidden > 0) ? '' : 'none';
   if (!isPremium && hidden > 0) hint.textContent = `+${hidden} cachés — Passez Premium pour tous les voir →`;
 
-  grid.innerHTML = visible.map(l => {
+  // Cartes visibles (débloquées)
+  const visibleCards = visible.map(l => {
     const p = l.profiles;
     return `<div onclick="openLikeChat('${l.swiper_id}')" style="background:var(--navy-card);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
       <div style="font-size:32px;margin-bottom:8px;">${escapeHtml(p?.emoji||'💼')}</div>
@@ -1441,13 +1584,31 @@ async function loadLikesReceived() {
     </div>`;
   }).join('');
 
+  // Cartes floutées (non-premium) — on montre une silhouette par like caché
+  let lockedCards = '';
   if (!isPremium && hidden > 0) {
-    grid.innerHTML += `<div onclick="showPremiumModal()" style="background:rgba(201,168,76,0.05);border:1px dashed rgba(201,168,76,0.3);border-radius:12px;padding:16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:110px;">
-      <div style="font-size:24px;margin-bottom:8px;">🔒</div>
-      <div style="font-size:12px;color:var(--gold);font-weight:600;">+${hidden} likes</div>
-      <div style="font-size:11px;color:var(--gray);margin-top:4px;">Premium pour voir</div>
-    </div>`;
+    const fakeEmojis = ['💼','🚀','💡','📊','🏦','💎'];
+    const fakeTypes = ['Investisseur','Business Angel','Fonds VC','Entrepreneur','Family Office'];
+    for (let i = 0; i < Math.min(hidden, 4); i++) {
+      const fe = fakeEmojis[i % fakeEmojis.length];
+      const ft = fakeTypes[i % fakeTypes.length];
+      lockedCards += `<div class="like-card-locked" onclick="showPremiumModal()">
+        <div class="like-blur-inner">
+          <div style="font-size:32px;margin-bottom:8px;">${fe}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--white);">••••• •••••</div>
+          <div style="font-size:11px;color:var(--gray);margin-top:4px;">${ft}</div>
+          <div style="margin-top:10px;font-size:11px;color:var(--gold);font-weight:600;">❤️ vous a liké</div>
+        </div>
+        <div class="like-lock-overlay">
+          <span class="ll-icon">🔒</span>
+          <span class="ll-label">Premium</span>
+          <span class="ll-sub">Débloquer →</span>
+        </div>
+      </div>`;
+    }
   }
+
+  grid.innerHTML = visibleCards + lockedCards;
 }
 
 async function openLikeChat(swiperId) {
@@ -2114,10 +2275,16 @@ function buildProfilePage() {
     <div class="profile-info-block"><h4>📍 Localisation</h4><p>${escapeHtml(p.location||'—')}</p></div>
     <div class="profile-info-block"><h4>🚀 Stade</h4><p>${escapeHtml(p.stage||'—')}</p></div>
     <div class="profile-info-block"><h4>🎯 Secteur</h4><p>${escapeHtml(p.sector||'—')}</p></div>` : `
-    <div class="profile-info-block"><h4>💰 Ticket</h4><p>${escapeHtml(p.ticket_min)} – ${escapeHtml(p.ticket_max)}</p></div>
+    <div class="profile-info-block"><h4>💰 Ticket</h4><p>${escapeHtml(p.ticket_min||'—')} – ${escapeHtml(p.ticket_max||'—')}</p></div>
     <div class="profile-info-block"><h4>📍 Localisation</h4><p>${escapeHtml(p.location||'—')}</p></div>
     <div class="profile-info-block"><h4>🏛️ Type</h4><p>${escapeHtml(p.investor_type||'—')}</p></div>
     <div class="profile-info-block"><h4>✉️ Email</h4><p style="font-size:13px">${escapeHtml(currentUser.email)}</p></div>`;
+  // Pitch/bio complet
+  const pitchText = isE ? (p.pitch||'') : (p.bio||'');
+  const gridEl = document.getElementById('ph-grid');
+  if (pitchText) {
+    gridEl.insertAdjacentHTML('afterend', `<div class="profile-info-block" style="grid-column:1/-1;margin-top:0"><h4>${isE?'🎤 Pitch':'👤 Bio'}</h4><p style="font-size:14px;font-weight:400;line-height:1.6;color:var(--white)">${escapeHtml(pitchText)}</p></div>`);
+  }
 }
 
 // ═══════════════════════════════════════
@@ -2139,6 +2306,328 @@ function showPage(page, btn) {
   document.getElementById('page-title').textContent = titles[page][0];
   document.getElementById('page-sub').textContent = titles[page][1];
   if (page === 'messages') buildConversationsList();
+}
+
+// ═══════════════════════════════════════
+// FILTRES DÉCOUVRIR
+// ═══════════════════════════════════════
+function applyFilters() {
+  const sector = document.getElementById('filter-sector')?.value || '';
+  const stage  = document.getElementById('filter-stage')?.value  || '';
+  const ticket = document.getElementById('filter-ticket')?.value || '';
+  discoverFilters = { sector, stage, ticket };
+
+  // Highlight des selects actifs
+  ['filter-sector','filter-stage','filter-ticket'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('on', !!el.value);
+  });
+
+  // Bouton reset visible si au moins un filtre actif
+  const hasFilter = sector || stage || ticket;
+  const resetBtn = document.getElementById('filter-reset-btn');
+  if (resetBtn) resetBtn.classList.toggle('visible', !!hasFilter);
+
+  // Filtre les profils
+  const parseTicketVal = (str) => {
+    if (!str) return null;
+    const s = str.toLowerCase().replace(/\s/g,'');
+    if (s.includes('1m€+') || s.includes('1m+')) return 2000;
+    if (s.includes('500k')) return 750;
+    if (s.includes('250k')) return 375;
+    if (s.includes('150k') || s.includes('200k')) return 200;
+    if (s.includes('100k')) return 125;
+    if (s.includes('50k')) return 75;
+    if (s.includes('25k')) return 37;
+    if (s.includes('20k') || s.includes('10k')) return 15;
+    return 50;
+  };
+
+  discoverProfiles = allDiscoverProfiles.filter(p => {
+    // Filtre secteur
+    if (sector) {
+      const tags = (p.tags || []).map(t => t.toLowerCase());
+      const sec  = (p.sector || '').toLowerCase();
+      if (!tags.includes(sector.toLowerCase()) && sec !== sector.toLowerCase()) return false;
+    }
+    // Filtre stade (s'applique aux entrepreneurs)
+    if (stage && p.user_type === 'entrepreneur') {
+      if ((p.stage || '') !== stage) return false;
+    }
+    // Filtre ticket
+    if (ticket) {
+      const amount = p.user_type === 'entrepreneur' ? p.amount : (p.ticket_max || p.ticket_min);
+      const val = parseTicketVal(amount);
+      if (ticket === 'small'  && !(val < 75))             return false;
+      if (ticket === 'mid'    && !(val >= 75 && val < 250))  return false;
+      if (ticket === 'large'  && !(val >= 250 && val < 1500)) return false;
+      if (ticket === 'xlarge' && !(val >= 1500))           return false;
+    }
+    return true;
+  });
+
+  discoverIdx = 0;
+  buildCards();
+
+  // Compteur de résultats
+  const countEl = document.getElementById('filter-count');
+  if (countEl) {
+    countEl.textContent = hasFilter ? `${discoverProfiles.length} profil${discoverProfiles.length !== 1 ? 's' : ''}` : '';
+  }
+}
+
+function resetFilters() {
+  ['filter-sector','filter-stage','filter-ticket'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('on'); }
+  });
+  document.getElementById('filter-reset-btn')?.classList.remove('visible');
+  document.getElementById('filter-count').textContent = '';
+  discoverFilters = { sector: '', stage: '', ticket: '' };
+  discoverProfiles = [...allDiscoverProfiles];
+  discoverIdx = 0;
+  buildCards();
+}
+
+// ═══════════════════════════════════════
+// PROFIL COMPLET (DETAIL MODAL)
+// ═══════════════════════════════════════
+function showProfileDetail(profile) {
+  detailCardProfile = profile;
+  const isInv = profile.user_type === 'investisseur';
+  const ticket = isInv ? `${profile.ticket_min} – ${profile.ticket_max}` : profile.amount;
+  const role   = isInv ? `${profile.investor_type} · ${profile.location}` : `Entrepreneur · ${profile.location}`;
+  const bio    = profile.bio || profile.pitch || '';
+  const score  = profile.compatScore || 70;
+  const scoreClass = getCompatColor(score);
+  const tags   = (profile.tags || []);
+
+  const inner = document.getElementById('detail-card-inner');
+  inner.innerHTML = `
+    <div class="detail-dhead">
+      <button class="detail-close-btn" onclick="closeProfileDetail()">✕</button>
+      <div class="card-type-badge ${isInv?'badge-investisseur':'badge-entrepreneur'}" style="position:static;display:inline-block;margin-bottom:12px;">${isInv?'Investisseur vérifié ✓':'Entrepreneur'}</div>
+      <div style="display:flex;align-items:flex-start;gap:16px">
+        <div class="card-avatar" style="flex-shrink:0">${escapeHtml(profile.emoji||(isInv?'💼':'🚀'))}</div>
+        <div>
+          <div class="card-name">${escapeHtml(profile.name)}</div>
+          <div class="card-role">${escapeHtml(role)}</div>
+          <div class="card-tags" style="margin-top:8px">${tags.map(t=>`<span class="card-tag">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-dbody">
+      <div class="card-highlight" style="margin-bottom:16px">
+        <div class="hl-val">${escapeHtml(ticket||'—')}</div>
+        <div class="hl-label">${isInv?"Ticket d'investissement":'Montant recherché'}</div>
+      </div>
+      ${bio ? `<div class="detail-section"><div class="detail-section-label">${isInv?'👤 À propos':'🎤 Pitch'}</div><div class="detail-section-value" style="font-size:13px;line-height:1.7">${escapeHtml(bio)}</div></div>` : ''}
+      ${!isInv && profile.stage ? `<div class="detail-section"><div class="detail-section-label">📈 Stade</div><div class="detail-section-value">${escapeHtml(profile.stage)}</div></div>` : ''}
+      ${!isInv && profile.sector ? `<div class="detail-section"><div class="detail-section-label">🏷️ Secteur principal</div><div class="detail-section-value">${escapeHtml(profile.sector)}</div></div>` : ''}
+      ${isInv && profile.investor_type ? `<div class="detail-section"><div class="detail-section-label">🏛️ Type d'investisseur</div><div class="detail-section-value">${escapeHtml(profile.investor_type)}</div></div>` : ''}
+      <div class="detail-section">
+        <div class="detail-section-label">📊 Compatibilité</div>
+        <div class="card-compat" style="margin-top:4px">
+          <div class="compat-bar"><div class="compat-fill ${scoreClass}" style="width:${score}%"></div></div>
+          <span style="font-size:14px;font-weight:700;color:var(--gold)">${score}%</span>
+        </div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="detail-pass-btn" onclick="detailSwipe('pass')">✕ Passer</button>
+      <button class="detail-like-btn" onclick="detailSwipe('like')">♥ Liker ce profil</button>
+    </div>`;
+
+  document.getElementById('profile-detail-modal').classList.add('show');
+}
+
+function closeProfileDetail() {
+  document.getElementById('profile-detail-modal').classList.remove('show');
+  detailCardProfile = null;
+}
+
+function detailSwipe(action) {
+  closeProfileDetail();
+  const card = document.querySelector('.profile-card.top');
+  const profile = discoverProfiles[discoverIdx];
+  if (card && profile && profile.id === detailCardProfile?.id) {
+    doSwipe(action, card, profile);
+  } else {
+    // Le profil affiché n'est plus en tête — swipe sans animation
+    if (detailCardProfile) {
+      doSwipe(action, document.createElement('div'), detailCardProfile);
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// ÉDITION DU PROFIL
+// ═══════════════════════════════════════
+function openProfileEdit() {
+  const p = currentProfile;
+  const isE = p.user_type === 'entrepreneur';
+  const fieldsEl = document.getElementById('edit-profile-fields');
+  const sectorDiv = document.getElementById('edit-profile-sector-tags');
+
+  fieldsEl.innerHTML = isE ? `
+    <label class="fl">Nom complet</label>
+    <input class="fi" id="ep-name" value="${escapeHtml(p.name||'')}"/>
+    <label class="fl">Secteur d'activité</label>
+    <select class="fi" id="ep-sector">
+      <option value="">Choisissez un secteur</option>
+      ${['AgriTech','FinTech','HealthTech','EdTech','E-commerce','Immobilier','CleanTech','Commerce / Distribution','SaaS','Marketplace','Autre']
+        .map(s=>`<option${p.sector===s?' selected':''}>${s}</option>`).join('')}
+    </select>
+    <div class="field-row">
+      <div><label class="fl">Montant recherché</label>
+        <select class="fi" id="ep-amount">
+          ${['20k – 50k €','50k – 150k €','150k – 500k €','500k – 1M €','1M€+']
+            .map(s=>`<option${p.amount===s?' selected':''}>${s}</option>`).join('')}
+        </select></div>
+      <div><label class="fl">Stade</label>
+        <select class="fi" id="ep-stage">
+          ${['Idée','Pré-amorçage','Amorçage','Seed','Série A']
+            .map(s=>`<option${p.stage===s?' selected':''}>${s}</option>`).join('')}
+        </select></div>
+    </div>
+    <label class="fl">Localisation</label>
+    <input class="fi" id="ep-location" value="${escapeHtml(p.location||'')}"/>
+    <label class="fl">Pitch</label>
+    <textarea class="fi" id="ep-pitch" style="resize:vertical;min-height:72px">${escapeHtml(p.pitch||'')}</textarea>
+  ` : `
+    <label class="fl">Nom complet</label>
+    <input class="fi" id="ep-name" value="${escapeHtml(p.name||'')}"/>
+    <label class="fl">Type d'investisseur</label>
+    <select class="fi" id="ep-investor-type">
+      ${['Business Angel','Family Office','Fonds VC','Investisseur particulier']
+        .map(s=>`<option${p.investor_type===s?' selected':''}>${s}</option>`).join('')}
+    </select>
+    <div class="field-row">
+      <div><label class="fl">Ticket min</label>
+        <select class="fi" id="ep-ticket-min">
+          ${['10k €','25k €','50k €','100k €','250k €']
+            .map(s=>`<option${p.ticket_min===s?' selected':''}>${s}</option>`).join('')}
+        </select></div>
+      <div><label class="fl">Ticket max</label>
+        <select class="fi" id="ep-ticket-max">
+          ${['50k €','100k €','250k €','500k €','1M€+']
+            .map(s=>`<option${p.ticket_max===s?' selected':''}>${s}</option>`).join('')}
+        </select></div>
+    </div>
+    <label class="fl">Localisation</label>
+    <input class="fi" id="ep-location" value="${escapeHtml(p.location||'')}"/>
+    <label class="fl">Bio</label>
+    <textarea class="fi" id="ep-bio" style="resize:vertical;min-height:72px">${escapeHtml(p.bio||'')}</textarea>
+  `;
+
+  // Secteurs d'intérêt (tags)
+  const allSectors = ['AgriTech','FinTech','HealthTech','EdTech','E-commerce','Immobilier','CleanTech','SaaS','Marketplace','Impact social','Logistique','Commerce'];
+  const currentTags = p.tags || [];
+  document.getElementById('edit-sector-tags-list').innerHTML = allSectors.map(s =>
+    `<div class="stag${currentTags.includes(s)?' selected':''}" onclick="this.classList.toggle('selected')">${escapeHtml(s)}</div>`
+  ).join('');
+  sectorDiv.style.display = '';
+
+  document.getElementById('edit-profile-error').style.display = 'none';
+  document.getElementById('edit-profile-modal').classList.add('show');
+}
+
+function closeProfileEdit() {
+  document.getElementById('edit-profile-modal').classList.remove('show');
+}
+
+async function saveProfileEdit() {
+  const p = currentProfile;
+  const isE = p.user_type === 'entrepreneur';
+  const btn = document.getElementById('edit-save-btn');
+  btn.disabled = true; btn.textContent = '⏳ Enregistrement…';
+
+  const selectedTags = [...document.querySelectorAll('#edit-sector-tags-list .stag.selected')].map(el => el.textContent);
+
+  let profileData;
+  if (isE) {
+    profileData = {
+      id: p.id,
+      name: escapeHtml(document.getElementById('ep-name').value.trim() || p.name),
+      sector: document.getElementById('ep-sector').value || p.sector,
+      amount: document.getElementById('ep-amount').value,
+      stage: document.getElementById('ep-stage').value,
+      location: document.getElementById('ep-location').value.trim() || p.location,
+      pitch: document.getElementById('ep-pitch').value.trim(),
+      tags: [...new Set([document.getElementById('ep-sector').value, ...selectedTags].filter(Boolean))],
+    };
+  } else {
+    profileData = {
+      id: p.id,
+      name: escapeHtml(document.getElementById('ep-name').value.trim() || p.name),
+      investor_type: document.getElementById('ep-investor-type').value,
+      ticket_min: document.getElementById('ep-ticket-min').value,
+      ticket_max: document.getElementById('ep-ticket-max').value,
+      location: document.getElementById('ep-location').value.trim() || p.location,
+      bio: document.getElementById('ep-bio').value.trim(),
+      tags: selectedTags,
+    };
+  }
+
+  const { data, error } = await sb.from('profiles').update(profileData).eq('id', p.id).select().single();
+  btn.disabled = false; btn.textContent = '💾 Enregistrer les modifications';
+
+  if (error) {
+    const errEl = document.getElementById('edit-profile-error');
+    errEl.textContent = 'Erreur : ' + error.message; errEl.style.display = 'block';
+    return;
+  }
+
+  currentProfile = data;
+  closeProfileEdit();
+  buildProfilePage();
+  // Mettre à jour la sidebar
+  document.getElementById('sb-name').textContent = data.name;
+  showToast('✅ Profil mis à jour avec succès !', 'success');
+}
+
+// ═══════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════
+const OB_STEPS = [
+  { icon: '✦', title: 'Bienvenue sur InvestMatch', text: 'La plateforme qui connecte entrepreneurs et investisseurs. En quelques swipes, trouvez le partenaire idéal pour votre projet.' },
+  { icon: '👆', title: 'Swipez pour découvrir', text: 'Glissez les cartes à droite pour liker, à gauche pour passer. Cliquez sur une carte pour voir le profil complet avant de décider.' },
+  { icon: '🤝', title: 'Quand c\'est un match !', text: 'Si la personne vous a aussi liké, c\'est un match ! Vous recevez une notification et vous pouvez commencer à échanger.' },
+  { icon: '📝', title: 'Signez le NCNDA', text: 'Avant d\'échanger, les deux parties signent un accord de confidentialité (NCNDA). C\'est simple, rapide et protège tout le monde.' },
+  { icon: '🚀', title: 'C\'est parti !', text: 'Votre profil est prêt. Commencez à découvrir des profils compatibles et construisez votre réseau d\'investissement.' },
+];
+
+function obStart() {
+  obStep = 0;
+  obRender();
+  document.getElementById('onboarding-overlay').classList.add('show');
+}
+
+function obRender() {
+  const step = OB_STEPS[obStep];
+  const total = OB_STEPS.length;
+  // Dots
+  document.getElementById('ob-dots').innerHTML = OB_STEPS.map((_,i) =>
+    `<div class="ob-pdot${i===obStep?' cur':''}"></div>`).join('');
+  document.getElementById('ob-icon').textContent  = step.icon;
+  document.getElementById('ob-title').textContent = step.title;
+  document.getElementById('ob-text').textContent  = step.text;
+  const nextBtn = document.getElementById('ob-next-btn');
+  nextBtn.textContent = obStep < total - 1 ? 'Suivant →' : 'C\'est parti ! ✦';
+}
+
+function obNext() {
+  if (obStep < OB_STEPS.length - 1) {
+    obStep++;
+    obRender();
+  } else {
+    obClose();
+  }
+}
+
+function obClose() {
+  document.getElementById('onboarding-overlay').classList.remove('show');
+  localStorage.setItem(OB_KEY, '1');
 }
 
 // ── START ──
