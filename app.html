@@ -892,9 +892,17 @@ async function handleLogin() {
   if (!email || !password) return showAuthMsg('Veuillez remplir tous les champs.');
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Connexion…';
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   btn.disabled = false; btn.textContent = 'Se connecter →';
-  if (error) showAuthMsg('Email ou mot de passe incorrect.');
+  if (error) return showAuthMsg('Email ou mot de passe incorrect.');
+  if (data?.user) {
+    // Prend le contrôle direct — invalide tout loadProfile en cours
+    _loadGen++;
+    _profileLoading = true;
+    currentUser = data.user;
+    await loadProfile(0, _loadGen);
+    _profileLoading = false;
+  }
 }
 
 async function handleRegister() {
@@ -905,16 +913,11 @@ async function handleRegister() {
   if (password.length < 8) return showAuthMsg('Le mot de passe doit faire au moins 8 caractères.');
   const btn = document.getElementById('register-btn');
   btn.disabled = true; btn.textContent = 'Création…';
-  // Bloque onAuthStateChange pour éviter que SIGNED_IN déclenche loadProfile
-  // sur un profil qui n'existe pas encore
-  _profileLoading = true;
+  _loadGen++; _profileLoading = true; // Bloque toute interférence
   const { data, error } = await sb.auth.signUp({ email, password, options: { data: { user_type: userType } } });
   btn.disabled = false; btn.textContent = 'Créer mon compte →';
-  if (error) {
-    _profileLoading = false;
-    return showAuthMsg(error.message);
-  }
-  if (data.user) {
+  if (error) { _profileLoading = false; return showAuthMsg(error.message); }
+  if (data?.user) {
     currentUser = data.user;
     hideAuth(); showSetup(userType);
     showToast('Compte créé ! Complétez votre profil.', 'success');
@@ -948,7 +951,10 @@ function resetAppState() {
 // ═══════════════════════════════════════
 // PROFILE LOAD & SETUP
 // ═══════════════════════════════════════
-async function loadProfile(retryCount = 0) {
+async function loadProfile(retryCount = 0, generation = _loadGen) {
+  // Si une nouvelle session a été démarrée entre-temps, on abandonne silencieusement
+  if (generation !== _loadGen) return;
+
   setLoader('Chargement du profil…');
   let data = null, error = null, timedOut = false;
   try {
@@ -959,20 +965,24 @@ async function loadProfile(retryCount = 0) {
     ]);
     data = result.data; error = result.error;
   } catch(e) {
+    // Re-vérification de la génération après l'await
+    if (generation !== _loadGen) return;
     if (timedOut && retryCount < 2) {
-      // Réseau lent : on retente max 2 fois
       hideLoader();
       showToast('Connexion lente, nouvelle tentative…', 'info');
       await new Promise(r => setTimeout(r, 2000));
-      return loadProfile(retryCount + 1);
+      return loadProfile(retryCount + 1, generation);
     }
-    // Échec définitif → nettoie la session périmée et retourne au login
+    // Échec définitif → affiche le login, sans toucher à la session Auth
     hideLoader();
-    try { await sb.auth.signOut(); } catch(_) {}
     currentUser = null; currentProfile = null;
+    showToast('Impossible de charger le profil. Réessayez.', 'error');
     showAuth();
     return;
   }
+
+  // Re-vérification après l'await
+  if (generation !== _loadGen) return;
 
   // Pas de profil encore créé → setup (maybeSingle retourne data=null sans erreur)
   if (error?.code === 'PGRST116' || (!data && !error)) {
@@ -982,12 +992,11 @@ async function loadProfile(retryCount = 0) {
     return;
   }
 
-  // Autre erreur Supabase (RLS, réseau, 401 session invalide, etc.)
+  // Autre erreur Supabase → retour au login sans déconnecter la session Auth
   if (error) {
     hideLoader();
-    try { await sb.auth.signOut(); } catch(_) {}
     currentUser = null; currentProfile = null;
-    showToast('Erreur de session. Reconnectez-vous.', 'error');
+    showToast('Erreur de chargement du profil. Réessayez.', 'error');
     showAuth();
     return;
   }
@@ -1048,27 +1057,28 @@ async function handleProfileSetup() {
 // INIT
 // ═══════════════════════════════════════
 let _profileLoading = false;
+let _loadGen = 0;
 
 async function init() {
   setLoader('Vérification de la session…');
 
-  // onAuthStateChange enregistré EN PREMIER pour ne rater aucun événement
+  // onAuthStateChange : gère uniquement la déconnexion et le refresh de token
   sb.auth.onAuthStateChange(async (event, session) => {
-    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !_profileLoading && !currentProfile) {
-      _profileLoading = true;
-      currentUser = session.user;
-      hideLoader();
-      await loadProfile();
-      _profileLoading = false;
-    } else if (event === 'SIGNED_OUT') {
+    if (event === 'SIGNED_OUT') {
+      _loadGen++; // invalide tout loadProfile en cours
       _profileLoading = false;
       try { sb.removeAllChannels(); } catch(_) {}
       currentUser = null; currentProfile = null;
       activeMatchId = null;
       hideApp(); hideLoader(); showAuth();
+    } else if (event === 'TOKEN_REFRESHED' && session && currentUser) {
+      // Juste mettre à jour le token, pas recharger le profil
+      currentUser = session.user;
     }
+    // SIGNED_IN n'est PAS géré ici — handleLogin s'en charge directement
   });
 
+  // Restauration de session existante au démarrage
   let session = null;
   try {
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
@@ -1077,12 +1087,15 @@ async function init() {
   } catch(e) {
     // Timeout ou erreur réseau → affiche login directement
   }
-  if (session && !_profileLoading) {
+
+  if (session?.user) {
+    _loadGen++;
+    const gen = _loadGen;
     _profileLoading = true;
     currentUser = session.user;
-    await loadProfile();
+    await loadProfile(0, gen);
     _profileLoading = false;
-  } else if (!session) {
+  } else {
     hideLoader(); showAuth();
   }
 }
