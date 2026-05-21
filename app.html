@@ -1041,15 +1041,18 @@ async function init() {
 
   // onAuthStateChange enregistré EN PREMIER pour ne rater aucun événement
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session && !_profileLoading && !currentProfile) {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && !_profileLoading && !currentProfile) {
       _profileLoading = true;
       currentUser = session.user;
+      hideLoader();
       await loadProfile();
       _profileLoading = false;
     } else if (event === 'SIGNED_OUT') {
       _profileLoading = false;
+      try { sb.removeAllChannels(); } catch(_) {}
       currentUser = null; currentProfile = null;
-      hideApp(); showAuth();
+      activeMatchId = null;
+      hideApp(); hideLoader(); showAuth();
     }
   });
 
@@ -1822,73 +1825,83 @@ function setupRealtimeMessages(matchId) {
 }
 
 function setupRealtimeGlobal() {
+  if (!currentProfile) return;
   const uid = currentProfile.id;
 
   // ── 1. Nouveaux matchs (user2) ──
   sb.channel('global-matches-u2')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches',
-      filter: `user2_id=eq.${uid}` }, async () => {
-        const prev = myMatches.length;
-        await loadMatches();
-        if (myMatches.length > prev) showMatchPopup(myMatches[myMatches.length - 1].profile);
+      filter: `user2_id=eq.${uid}` }, async (payload) => {
+        try {
+          if (!currentProfile) return;
+          // Ignore si on est l'initiateur (match déjà dans myMatches)
+          if (myMatches.find(m => m.match.id === payload.new?.id)) return;
+          const prev = myMatches.length;
+          await loadMatches();
+          const newest = myMatches[myMatches.length - 1];
+          if (myMatches.length > prev && newest?.profile) showMatchPopup(newest.profile);
+        } catch(e) { console.warn('rt match-u2:', e.message); }
       }).subscribe();
 
   // ── 2. Nouveaux matchs (user1) ──
   sb.channel('global-matches-u1')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches',
-      filter: `user1_id=eq.${uid}` }, async () => {
-        const prev = myMatches.length;
-        await loadMatches();
-        if (myMatches.length > prev) showMatchPopup(myMatches[myMatches.length - 1].profile);
+      filter: `user1_id=eq.${uid}` }, async (payload) => {
+        try {
+          if (!currentProfile) return;
+          if (myMatches.find(m => m.match.id === payload.new?.id)) return;
+          const prev = myMatches.length;
+          await loadMatches();
+          const newest = myMatches[myMatches.length - 1];
+          if (myMatches.length > prev && newest?.profile) showMatchPopup(newest.profile);
+        } catch(e) { console.warn('rt match-u1:', e.message); }
       }).subscribe();
 
-  // ── 3. Nouveaux likes reçus — mise à jour instantanée de "Mes Likes" ──
+  // ── 3. Nouveaux likes reçus ──
   sb.channel('global-likes')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'swipes',
       filter: `swiped_id=eq.${uid}` }, async (payload) => {
-        if (!currentProfile) return;
-        if (payload.new.action === 'like' || payload.new.action === 'super') {
-          await loadLikesReceived();
-          showToast('❤️ Quelqu\'un vous a liké !', 'info', 3000);
-        }
+        try {
+          if (!currentProfile) return;
+          if (payload.new?.action === 'like' || payload.new?.action === 'super') {
+            await loadLikesReceived();
+            showToast('❤️ Quelqu\'un vous a liké !', 'info', 3000);
+          }
+        } catch(e) { console.warn('rt likes:', e.message); }
       }).subscribe();
 
-  // ── 4. Signature du NCNDA — déverrouille le chat en temps réel ──
+  // ── 4. Signature NCNDA ──
   sb.channel('global-agreements')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'agreements' },
       async (payload) => {
-        if (!currentProfile) return;
-        const agr = payload.new;
-        // Concerne cet utilisateur ?
-        if (agr.entrepreneur_id !== uid && agr.investor_id !== uid) return;
-        const bothSigned = agr.entrepreneur_signed && agr.investor_signed;
-        if (!bothSigned) return;
-        const isE = agr.entrepreneur_id === uid;
-        const mySigned = isE ? agr.entrepreneur_signed : agr.investor_signed;
-        if (!mySigned) return; // L'autre a signé mais pas moi, rien à faire
-        // Les deux ont signé et je suis déjà signé → ouvrir le chat
-        const matchData = myMatches.find(m => m.match.id === agr.match_id);
-        if (!matchData) return;
-        showToast('✦ Les deux parties ont signé ! Chat débloqué.', 'success', 4000);
-        // Si je suis déjà sur ce chat, rafraîchit. Sinon, ouvre-le.
-        await openMatchChat(agr.match_id, matchData.profile.id);
+        try {
+          if (!currentProfile) return;
+          const agr = payload.new;
+          if (!agr || (agr.entrepreneur_id !== uid && agr.investor_id !== uid)) return;
+          if (!agr.entrepreneur_signed || !agr.investor_signed) return;
+          const isE = agr.entrepreneur_id === uid;
+          const mySigned = isE ? agr.entrepreneur_signed : agr.investor_signed;
+          if (!mySigned) return;
+          const matchData = myMatches.find(m => m.match.id === agr.match_id);
+          if (!matchData?.profile) return;
+          showToast('✦ Les deux parties ont signé ! Chat débloqué.', 'success', 4000);
+          await openMatchChat(agr.match_id, matchData.profile.id);
+        } catch(e) { console.warn('rt agreements:', e.message); }
       }).subscribe();
 
-  // ── 5. Nouveaux messages globaux — notification même si le chat n'est pas ouvert ──
+  // ── 5. Messages globaux (notification hors chat) ──
   sb.channel('global-messages')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
       async (payload) => {
-        if (!currentProfile) return;
-        const msg = payload.new;
-        if (msg.sender_id === uid) return; // C'est mon propre message
-        // Trouve le match correspondant
-        const matchData = myMatches.find(m => m.match.id === msg.match_id);
-        if (!matchData) return;
-        // Si le chat est déjà ouvert sur ce match, appendMessageBubble s'en occupe
-        if (activeMatchId === msg.match_id) return;
-        // Sinon → notification toast
-        const name = matchData.profile?.name || 'Quelqu\'un';
-        showToast(`💬 ${name} vous a envoyé un message`, 'info', 4000);
+        try {
+          if (!currentProfile) return;
+          const msg = payload.new;
+          if (!msg || msg.sender_id === uid) return;
+          if (activeMatchId === msg.match_id) return; // déjà géré par setupRealtimeMessages
+          const matchData = myMatches.find(m => m.match.id === msg.match_id);
+          if (!matchData?.profile) return;
+          showToast(`💬 ${matchData.profile.name} vous a envoyé un message`, 'info', 4000);
+        } catch(e) { console.warn('rt messages:', e.message); }
       }).subscribe();
 }
 
