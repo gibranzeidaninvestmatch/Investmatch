@@ -419,6 +419,34 @@ select.fi option{background:var(--navy-mid)}
       <label class="fl">Mot de passe</label>
       <input class="fi" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"/>
       <button class="btn-g" id="login-btn" onclick="handleLogin()">Se connecter →</button>
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">Mot de passe oublié ?</button>
+      </div>
+    </div>
+    <div id="form-forgot" style="display:none">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px;">Réinitialiser le mot de passe</div>
+        <div style="font-size:13px;color:var(--gray);line-height:1.5;">Entrez votre email, nous vous enverrons un lien de réinitialisation.</div>
+      </div>
+      <label class="fl">Email</label>
+      <input class="fi" id="forgot-email" type="email" placeholder="votre@email.com" onkeydown="if(event.key==='Enter')handlePasswordReset()"/>
+      <button class="btn-g" id="forgot-btn" onclick="handlePasswordReset()">Envoyer le lien →</button>
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="showAuthForm('login')" style="background:none;border:none;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">← Retour à la connexion</button>
+      </div>
+    </div>
+    <div id="form-newpassword" style="display:none">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:32px;margin-bottom:8px;">🔒</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px;">Nouveau mot de passe</div>
+        <div style="font-size:13px;color:var(--gray);line-height:1.5;">Choisissez un nouveau mot de passe sécurisé.</div>
+      </div>
+      <label class="fl">Nouveau mot de passe</label>
+      <input class="fi" id="newpwd-1" type="password" placeholder="8 caractères minimum"/>
+      <label class="fl">Confirmer le mot de passe</label>
+      <input class="fi" id="newpwd-2" type="password" placeholder="Répétez le mot de passe" onkeydown="if(event.key==='Enter')handleNewPassword()"/>
+      <button class="btn-g" id="newpwd-btn" onclick="handleNewPassword()">Mettre à jour →</button>
     </div>
     <div id="form-register" style="display:none">
       <label class="fl">Email</label>
@@ -432,6 +460,21 @@ select.fi option{background:var(--navy-mid)}
       </select>
       <button class="btn-g" id="register-btn" onclick="handleRegister()">Créer mon compte →</button>
     </div>
+  </div>
+</div>
+
+<!-- EMAIL VERIFICATION SCREEN -->
+<div id="email-verify-screen" style="display:none;position:fixed;inset:0;z-index:210;background:var(--navy);align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--navy-mid);border:1px solid rgba(201,168,76,0.2);border-radius:24px;padding:48px 40px;max-width:420px;width:100%;text-align:center;animation:fadeUp .6s ease both;">
+    <div style="font-size:56px;margin-bottom:16px;">📧</div>
+    <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--white);margin-bottom:8px;">Vérifiez votre email</div>
+    <div style="font-size:14px;color:var(--gray);line-height:1.6;margin-bottom:8px;">Un lien de confirmation a été envoyé à :</div>
+    <div id="verify-email-addr" style="font-size:15px;font-weight:600;color:var(--gold);margin-bottom:24px;word-break:break-all;"></div>
+    <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.15);border-radius:12px;padding:16px;margin-bottom:24px;">
+      <p style="font-size:13px;color:var(--gray);line-height:1.6;margin:0;">Cliquez sur le lien dans l'email pour activer votre compte. Vérifiez aussi vos spams si vous ne le trouvez pas.</p>
+    </div>
+    <button onclick="resendVerifyEmail()" id="resend-btn" style="background:var(--gold-dim);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;padding:12px 24px;border-radius:10px;cursor:pointer;width:100%;margin-bottom:12px;transition:all .2s;" onmouseover="this.style.background='var(--gold)';this.style.color='var(--navy)'" onmouseout="this.style.background='var(--gold-dim)';this.style.color='var(--gold)'">Renvoyer l'email</button>
+    <button onclick="backToAuth()" style="background:none;border:none;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">← Retour à la connexion</button>
   </div>
 </div>
 
@@ -683,10 +726,35 @@ select.fi option{background:var(--navy-mid)}
             </div>
             <button class="pb-btn" onclick="showPremiumModal()">Voir les offres</button>
           </div>
+          <!-- DANGER ZONE -->
+          <div style="margin-top:12px;background:rgba(224,92,106,0.05);border:1px solid rgba(224,92,106,0.2);border-radius:16px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:14px;font-weight:600;color:#F09090;margin-bottom:3px;">⚠️ Zone de danger</div>
+              <div style="font-size:12px;color:var(--gray);line-height:1.5;">Supprimer définitivement votre compte et toutes vos données (RGPD).</div>
+            </div>
+            <button onclick="showDeleteAccountModal()" style="flex-shrink:0;padding:9px 18px;border-radius:10px;background:rgba(224,92,106,0.1);border:1px solid rgba(224,92,106,0.3);color:#F09090;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='#E05C6A';this.style.color='#fff'" onmouseout="this.style.background='rgba(224,92,106,0.1)';this.style.color='#F09090'">Supprimer mon compte</button>
+          </div>
         </div>
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT MODAL -->
+<div id="delete-account-modal" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(11,22,40,0.96);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:24px;">
+  <div style="background:var(--navy-card);border:1px solid rgba(224,92,106,0.3);border-radius:20px;padding:36px;max-width:440px;width:100%;animation:fadeUp .3s ease both;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#F09090;margin-bottom:8px;">Supprimer mon compte</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.6;">Cette action est <strong style="color:var(--white)">irréversible</strong>. Toutes vos données seront effacées (profil, matchs, messages, accords).</div>
+    </div>
+    <div style="background:rgba(224,92,106,0.07);border:1px solid rgba(224,92,106,0.2);border-radius:10px;padding:14px;margin-bottom:20px;">
+      <p style="font-size:12px;color:var(--gray);margin:0;line-height:1.6;">Pour confirmer, tapez <strong style="color:var(--white);font-family:monospace;">SUPPRIMER</strong> dans le champ ci-dessous :</p>
+    </div>
+    <input id="delete-confirm-input" class="fi" type="text" placeholder="SUPPRIMER" style="text-align:center;letter-spacing:2px;font-weight:600;" oninput="checkDeleteConfirm()"/>
+    <button id="delete-confirm-btn" onclick="handleDeleteAccount()" disabled style="width:100%;padding:14px;border-radius:10px;background:rgba(224,92,106,0.2);color:rgba(240,144,144,0.5);border:1px solid rgba(224,92,106,0.2);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:not-allowed;transition:all .3s;margin-bottom:10px;">Supprimer définitivement</button>
+    <button onclick="closeDeleteAccountModal()" style="background:none;border:none;color:var(--gray);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;width:100%;text-align:center;padding:8px;">Annuler</button>
   </div>
 </div>
 
@@ -1041,9 +1109,33 @@ function goSetupStep1() {
 function switchAuthTab(tab, btn) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
-  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  showAuthForm(tab);
   clearAuthMsg();
+}
+
+// Affiche uniquement le formulaire demandé (login | register | forgot | newpassword)
+function showAuthForm(which) {
+  ['form-login','form-forgot','form-newpassword','form-register'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const target = which === 'login' ? 'form-login'
+    : which === 'register' ? 'form-register'
+    : which === 'forgot' ? 'form-forgot'
+    : which === 'newpassword' ? 'form-newpassword' : null;
+  if (target) document.getElementById(target).style.display = '';
+  // Cache les tabs quand on est sur forgot/newpassword
+  const tabs = document.querySelector('.auth-tabs');
+  if (tabs) tabs.style.display = (which === 'forgot' || which === 'newpassword') ? 'none' : '';
+  clearAuthMsg();
+}
+
+function showForgotPassword() {
+  // Pré-remplit avec l'email saisi si dispo
+  const email = document.getElementById('login-email')?.value || '';
+  const fi = document.getElementById('forgot-email');
+  if (fi && email) fi.value = email;
+  showAuthForm('forgot');
 }
 
 function showAuthMsg(msg, type = 'error') {
@@ -1082,16 +1174,155 @@ async function handleRegister() {
   if (password.length < 8) return showAuthMsg('Le mot de passe doit faire au moins 8 caractères.');
   const btn = document.getElementById('register-btn');
   btn.disabled = true; btn.textContent = 'Création…';
-  _loadGen++; _profileLoading = true; // Bloque toute interférence
+  _loadGen++; _profileLoading = true;
   const { data, error } = await sb.auth.signUp({ email, password, options: { data: { user_type: userType } } });
   btn.disabled = false; btn.textContent = 'Créer mon compte →';
   if (error) { _profileLoading = false; return showAuthMsg(error.message); }
   if (data?.user) {
     currentUser = data.user;
-    hideAuth(); showSetup(userType);
-    showToast('Compte créé ! Complétez votre profil.', 'success');
+    // session === null → vérification email requise (config Supabase)
+    if (!data.session) {
+      _profileLoading = false;
+      showEmailVerifyScreen(email);
+    } else {
+      // Vérification email désactivée → passage direct au setup
+      hideAuth(); showSetup(userType);
+      showToast('Compte créé ! Complétez votre profil.', 'success');
+      _profileLoading = false;
+    }
+  } else {
+    _profileLoading = false;
   }
-  _profileLoading = false;
+}
+
+// ── Mot de passe oublié ──────────────────────────────────────────────
+async function handlePasswordReset() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) return showAuthMsg('Veuillez entrer votre email.');
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/app.html'
+  });
+  btn.disabled = false; btn.textContent = 'Envoyer le lien →';
+  if (error) return showAuthMsg('Erreur : ' + error.message);
+  showAuthMsg('✅ Lien envoyé ! Vérifiez votre boîte email.', 'success');
+  document.getElementById('forgot-btn').disabled = true;
+}
+
+async function handleNewPassword() {
+  const pwd1 = document.getElementById('newpwd-1').value;
+  const pwd2 = document.getElementById('newpwd-2').value;
+  if (!pwd1 || !pwd2) return showAuthMsg('Veuillez remplir les deux champs.');
+  if (pwd1.length < 8) return showAuthMsg('Le mot de passe doit faire au moins 8 caractères.');
+  if (pwd1 !== pwd2) return showAuthMsg('Les mots de passe ne correspondent pas.');
+  const btn = document.getElementById('newpwd-btn');
+  btn.disabled = true; btn.textContent = 'Mise à jour…';
+  const { error } = await sb.auth.updateUser({ password: pwd1 });
+  btn.disabled = false; btn.textContent = 'Mettre à jour →';
+  if (error) return showAuthMsg('Erreur : ' + error.message);
+  showAuthMsg('✅ Mot de passe mis à jour !', 'success');
+  setTimeout(() => {
+    showAuthForm('login');
+    const tabs = document.querySelector('.auth-tabs');
+    if (tabs) tabs.style.display = '';
+  }, 2000);
+}
+
+// ── Vérification email ───────────────────────────────────────────────
+let _pendingVerifyEmail = '';
+
+function showEmailVerifyScreen(email) {
+  _pendingVerifyEmail = email;
+  hideAuth();
+  const el = document.getElementById('email-verify-screen');
+  if (el) {
+    el.style.display = 'flex';
+    const addr = document.getElementById('verify-email-addr');
+    if (addr) addr.textContent = email;
+  }
+}
+
+function hideEmailVerifyScreen() {
+  const el = document.getElementById('email-verify-screen');
+  if (el) el.style.display = 'none';
+}
+
+async function resendVerifyEmail() {
+  if (!_pendingVerifyEmail) return;
+  const btn = document.getElementById('resend-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+  await sb.auth.resend({ type: 'signup', email: _pendingVerifyEmail });
+  if (btn) { btn.textContent = '✅ Email renvoyé !'; }
+  setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Renvoyer l\'email'; } }, 5000);
+}
+
+function backToAuth() {
+  hideEmailVerifyScreen();
+  showAuth();
+  showAuthForm('login');
+  const tabs = document.querySelector('.auth-tabs');
+  if (tabs) tabs.style.display = '';
+  // Réinitialise login tabs
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', i === 0);
+  });
+}
+
+// ── Suppression de compte ────────────────────────────────────────────
+function showDeleteAccountModal() {
+  const el = document.getElementById('delete-account-modal');
+  if (el) {
+    el.style.display = 'flex';
+    const inp = document.getElementById('delete-confirm-input');
+    if (inp) inp.value = '';
+    const btn = document.getElementById('delete-confirm-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.style.background = 'rgba(224,92,106,0.2)';
+      btn.style.color = 'rgba(240,144,144,0.5)';
+      btn.style.cursor = 'not-allowed';
+    }
+  }
+}
+
+function closeDeleteAccountModal() {
+  const el = document.getElementById('delete-account-modal');
+  if (el) el.style.display = 'none';
+}
+
+function checkDeleteConfirm() {
+  const val = document.getElementById('delete-confirm-input')?.value || '';
+  const btn = document.getElementById('delete-confirm-btn');
+  if (!btn) return;
+  const ok = val === 'SUPPRIMER';
+  btn.disabled = !ok;
+  btn.style.background = ok ? '#E05C6A' : 'rgba(224,92,106,0.2)';
+  btn.style.color = ok ? '#fff' : 'rgba(240,144,144,0.5)';
+  btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+
+async function handleDeleteAccount() {
+  if (!currentUser) return;
+  const btn = document.getElementById('delete-confirm-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Suppression…'; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error('Session expirée. Reconnectez-vous.');
+    const res = await fetch('/api/delete-account', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Erreur serveur');
+    closeDeleteAccountModal();
+    showToast('Compte supprimé. À bientôt.', 'info');
+    await sb.auth.signOut();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Supprimer définitivement'; btn.style.background = '#E05C6A'; btn.style.color = '#fff'; btn.style.cursor = 'pointer'; }
+    showToast('Erreur : ' + e.message, 'error');
+  }
 }
 
 async function handleLogout() {
@@ -1231,20 +1462,48 @@ let _loadGen = 0;
 async function init() {
   setLoader('Vérification de la session…');
 
-  // onAuthStateChange : gère uniquement la déconnexion et le refresh de token
+  // onAuthStateChange : gère déconnexion, refresh, récupération mdp, confirmation email
   sb.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_OUT') {
-      _loadGen++; // invalide tout loadProfile en cours
+      _loadGen++;
       _profileLoading = false;
       try { sb.removeAllChannels(); } catch(_) {}
       currentUser = null; currentProfile = null;
       activeMatchId = null;
-      hideApp(); hideLoader(); showAuth();
+      hideApp(); hideLoader();
+      hideEmailVerifyScreen();
+      showAuth();
+      showAuthForm('login');
+      const tabs = document.querySelector('.auth-tabs');
+      if (tabs) tabs.style.display = '';
+      document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', i === 0));
+
+    } else if (event === 'PASSWORD_RECOVERY') {
+      // L'utilisateur a cliqué le lien de reset → affiche le formulaire de nouveau mot de passe
+      currentUser = session?.user || null;
+      hideLoader(); hideApp();
+      showAuth();
+      showAuthForm('newpassword');
+
+    } else if (event === 'USER_UPDATED' && currentUser && !currentProfile) {
+      // Après updateUser (nouveau mot de passe) → si pas encore de profil chargé, on laisse le flux normal
+    } else if ((event === 'SIGNED_IN') && session?.user && !currentProfile && !_profileLoading) {
+      // EMAIL_CONFIRMED déclenche un SIGNED_IN avec une vraie session
+      const wasVerifying = !!_pendingVerifyEmail;
+      if (wasVerifying) {
+        hideEmailVerifyScreen();
+        _pendingVerifyEmail = '';
+        _loadGen++;
+        const gen = _loadGen;
+        _profileLoading = true;
+        currentUser = session.user;
+        await loadProfile(0, gen);
+        _profileLoading = false;
+      }
     } else if (event === 'TOKEN_REFRESHED' && session && currentUser) {
-      // Juste mettre à jour le token, pas recharger le profil
       currentUser = session.user;
     }
-    // SIGNED_IN n'est PAS géré ici — handleLogin s'en charge directement
+    // SIGNED_IN standard (handleLogin) n'est PAS géré ici
   });
 
   // Restauration de session existante au démarrage

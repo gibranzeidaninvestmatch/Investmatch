@@ -2,6 +2,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { Resend } = require('resend');
 const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
+const { isRateLimited } = require('./_rateLimit');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.APP_URL || '*');
@@ -9,6 +10,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // ── Rate limiting : 5 NDA/heure par IP (opération coûteuse)
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(res, `send-nda:${ip}`, 5, 3_600_000)) return;
 
   const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
   const resend = new Resend(process.env.RESEND_API_KEY);

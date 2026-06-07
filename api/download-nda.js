@@ -1,11 +1,16 @@
 const { createClient } = require('@supabase/supabase-js');
 const PDFDocument = require('pdfkit');
 const crypto = require('crypto');
+const { isRateLimited } = require('./_rateLimit');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.APP_URL || '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  // ── Rate limiting : 20 téléchargements/heure par IP
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(res, `download-nda:${ip}`, 20, 3_600_000)) return;
 
   const { matchId } = req.query;
   if (!matchId) return res.status(400).json({ error: 'matchId requis.' });

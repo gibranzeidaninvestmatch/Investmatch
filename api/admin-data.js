@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { isRateLimited } = require('./_rateLimit');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', process.env.APP_URL || '*');
@@ -6,6 +7,10 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  // ── Rate limiting : 30 req/min par IP (dashboard admin)
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(res, `admin:${ip}`, 30, 60_000)) return;
 
   // ── Auth ──────────────────────────────────────────────────────────
   const token = (req.headers.authorization || '').replace('Bearer ', '').trim();
